@@ -235,9 +235,9 @@ int main(int argc, char **argv) {
   odom_prev.pose.pose.orientation.z = 0;
 
 
-  // Max speed of robot: 50cm/s. If we want ~1cm of precision,
-  // We need to publish at at least 50 Hz
-  ros::Rate rate(50);
+  // Max speed of robot: 50cm/s. If we want ~2cm of precision,
+  // We need to publish at at least 25 Hz
+  ros::Rate rate(30);
 
   while(ros::ok()) {
 

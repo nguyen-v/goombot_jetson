@@ -1,16 +1,16 @@
 <launch>
 
-  <!-- Transformation Configuration ... Setting Up the Relationships Between Coordinate Frames --> 
-  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0.06 0 0.08 0 0 0 base_link laser 30" />
-  <node pkg="tf" type="static_transform_publisher" name="imu_broadcaster" args="0 0.06 0.02 0 0 0 base_link imu 30" />
-  <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="0 0 0.09 0 0 0 base_footprint base_link 30" />
-  <!-- odom to base_footprint transform will be provided by the robot_pose_ekf node -->
-  <!-- map to odom will be provided by the AMCL -->
+  <!-- Transforms --> 
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0.0182 0 0.113 0 0 0 base_link laser 30" />
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_imu" args="-0.0123 0 0.0571 0 0 0 base_link imu 30" />
+  <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_base_link" args="0 0 0.06 0 0 0 base_footprint base_link 30" />
+  <!-- robot_pose_ekf: odom to base_footprint -->
+  <!-- amcl: map to odom -->
   <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map odom 30" />
 
   <!-- Setup rosserial connection to arduino -->
   <!-- Subscribes: /cmd_vel /reset_controller -->
-  <!-- Publishes: /left_wheel_vel /right_wheel_vel -->
+  <!-- Publishes: /left_wheel_vel /right_wheel_vel /left_ticks /right_ticks -->
   <node pkg="rosserial_python" type="serial_node.py" name="serial_node">
     <param name="port" value="/dev/ttyACM0"/>
     <param name="baud" value="115200"/>
@@ -24,9 +24,8 @@
     <param name="frame_id" type="string" value="imu"/>
   </node>
 
-  <!-- Lidar Data Publisher Using RPLIDAR from Slamtec -->
-  <!-- Used for obstacle avoidance and can be used for mapping --> 
-  <!-- Publish: /scan -->
+  <!-- RPLIDAR A1 publisher -->
+  <!-- Publishes: /scan -->
   <node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
     <param name="serial_port"         type="string" value="/dev/ttyUSB0"/>
     <param name="serial_baudrate"     type="int"    value="115200"/>
@@ -39,13 +38,38 @@
 <!-- Publishes: /initialpose, /move_base_simple/goal -->
 <node pkg="rviz" type="rviz" name="rviz">
 </node>
+
 <!-- 2D initial pose and goals publishers -->
 <!-- Subscribes: /initialpose, /move_base_simple/goal -->
 <!-- Publishes: /init_pose_2d, /goal_2d -->
 <node pkg="wheel_odom_pub" type="rviz_to_2d_pose" name="rviz_to_2d_pose">
 </node>
 
+<!-- Wheel odometry publisher -->
+<!-- Subscribes: /left_ticks /right_ticks /left_wheel_vel /right_wheel_vel /init_pose_2d -->
+<!-- Publishes: /odom_euler /odom_quat -->
 <node pkg="wheel_odom_pub" type="odom_pub" name="odom_pub">
 </node> 
+
+<!-- Combined EKF (IMU + wheel odometry) using robot_pose_ekf -->
+<!-- Subscribes: /odom, /imu_data, /vo -->
+<!-- Publishes: /robot_pose_ekf/odom_combined -->
+<remap from="odom" to="odom_quat" />
+<remap from="imu_data" to="imu/data" />
+<node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
+  <param name="output_frame" value="odom"/>
+  <param name="base_footprint_frame" value="base_footprint"/>
+  <param name="freq" value="30.0"/>
+  <param name="sensor_timeout" value="1.0"/>
+  <param name="odom_used" value="true"/>
+  <param name="imu_used" value="true"/>
+  <param name="vo_used" value="false"/>
+  <param name="gps_used" value="false"/>
+  <param name="debug" value="false"/>
+  <param name="self_diagnose" value="false"/>
+</node>
+
+
+
 
 </launch>
