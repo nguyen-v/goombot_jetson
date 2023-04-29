@@ -18,7 +18,7 @@
 
   <!-- IMU (BNO055) publisher-->
   <!-- Publishes: /imu/data -->
-  <node ns="imu" name="imu_node" pkg="imu_bno055" type="bno055_i2c_node" respawm="true" respawn_delay="1">
+  <node ns="imu" name="imu_node" pkg="imu_bno055" type="bno055_i2c_node" respawn="true" respawn_delay="1">
     <param name="device" type="string" value="/dev/i2c-1"/>
     <param name="address" type="int" value="40"/> <!-- BNO055 uses 0x28 as a default address-->
     <param name="frame_id" type="string" value="imu"/>
