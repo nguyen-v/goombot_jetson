@@ -34,6 +34,12 @@
     <param name="angle_compensate"    type="bool"   value="true"/>
   </node>  
 
+<!-- Laser filters to limit RPLIDAR angle -->
+<node pkg="laser_filters" type="scan_to_scan_filter_chain"
+    name="laser_filter">
+  <rosparam command="load" file="$(find navstack_pub)/param/laserscan_filter.yaml" />
+</node>
+
 <!-- Rviz initial pose and goals publisher -->
 <!-- Publishes: /initialpose, /move_base_simple/goal -->
 <node pkg="rviz" type="rviz" name="rviz">
@@ -69,7 +75,28 @@
   <param name="self_diagnose" value="false"/>
 </node>
 
-
+  <!-- Map -->
+  <arg name="map_file" default="$(find navstack_pub)/maps/test_arena.yaml"/>
+	
+  <!-- Map server -->
+  <!-- Publishes: /map, /map_metadata -->
+  <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)" />
+	
+  <!-- AMCL -->
+  <!-- Subscribes: /scan, /tf, /initialpose, /map -->
+  <!-- Publish: /amcl_pose, /particlecloud, /tf -->
+  <include file="$(find navstack_pub)/launch/amcl_diff_lidar.launch"/>
+	
+  <!-- Move Base -->
+  <!-- Subscribes: /move_base_simple/goal -->
+  <!-- Publishes: /cmd_vel -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="$(find navstack_pub)/param/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find navstack_pub)/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find navstack_pub)/param/local_costmap_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find navstack_pub)/param/global_costmap_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find navstack_pub)/param/base_local_planner_params.yaml" command="load" />
+  </node>
 
 
 </launch>
