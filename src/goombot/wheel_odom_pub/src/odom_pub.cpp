@@ -17,7 +17,7 @@ using namespace std;
 #define REDUCTION_FACTOR      (60.f)
 #define TICKS_PER_REVOLUTION  (NUMBER_OF_POLES*REDUCTION_FACTOR)
 #define WHEEL_DIAMETER        (0.12f)
-#define WHEEL_SPACING         (0.342f)
+#define WHEEL_SPACING         (0.332f)
 #define METERS_PER_TICKS      (M_PI*WHEEL_DIAMETER/TICKS_PER_REVOLUTION)
 
 // Publishers
@@ -185,9 +185,9 @@ void odom_publish() {
   odom_quat.pose.covariance[7] = 0.01;
   odom_quat.pose.covariance[14] = 0.01;
   // r, p, y
-  odom_quat.pose.covariance[21] += 0.1;
-  odom_quat.pose.covariance[27] += 0.1;
-  odom_quat.pose.covariance[35] += 0.1;
+  odom_quat.pose.covariance[21] = 0.1;
+  odom_quat.pose.covariance[28] = 0.1;
+  odom_quat.pose.covariance[35] = 0.1;
 
   // Publish odometry message
   odom_euler_pub.publish(odom);
