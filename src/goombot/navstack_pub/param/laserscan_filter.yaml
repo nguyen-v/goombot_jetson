@@ -2,5 +2,16 @@ scan_filter_chain:
 - name: laser_cutoff
   type: laser_filters/LaserScanAngularBoundsFilter
   params:
-    lower_angle: -1.5707963267949
-    upper_angle: 1.5707963267949
+    lower_angle: -1.57
+    upper_angle: 1.57
+# scan_filter_chain:
+  # - name: range1
+  #   type: laser_filters/LaserScanAngularBoundsFilter
+  #   params:
+  #     lower_angle: -3.14
+  #     upper_angle: -1.57
+  # - name: range2
+  #   type: laser_filters/LaserScanAngularBoundsFilter
+  #   params:
+  #     lower_angle: 1.57
+  #     upper_angle: 3.14

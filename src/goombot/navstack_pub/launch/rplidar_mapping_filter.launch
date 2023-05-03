@@ -1,0 +1,12 @@
+<launch>
+
+<!-- Laser filters to limit RPLIDAR angle -->
+<!-- <node pkg="laser_filters" type="scan_to_scan_filter_chain"
+    name="laser_filter">
+  <rosparam command="load" file="$(find navstack_pub)/param/laserscan_filter.yaml" />
+</node> -->
+
+<include file="$(find hector_slam_launch)/launch/tutorial.launch"/>
+
+
+</launch>

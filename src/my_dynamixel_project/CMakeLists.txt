@@ -1,21 +1,17 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(wheel_odom_pub)
+project(my_dynamixel_project)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  geometry_msgs
-  nav_msgs
+  dynamixel_interface
   roscpp
-  rospy
   sensor_msgs
   std_msgs
-  tf
-  tf2_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -75,7 +71,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   geometry_msgs#   nav_msgs#   sensor_msgs#   std_msgs
+#   sensor_msgs#   std_msgs
 # )
 
 ################################################
@@ -109,8 +105,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES wheel_odom_pub
-#  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs tf tf2_ros
+#  LIBRARIES my_dynamixel_project
+#  CATKIN_DEPENDS dynamixel_interface roscpp sensor_msgs std_msgs
 #  DEPENDS system_lib
 )
 
@@ -127,7 +123,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/wheel_odom_pub.cpp
+#   src/${PROJECT_NAME}/my_dynamixel_project.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -138,7 +134,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/wheel_odom_pub_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/my_dynamixel_project_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -202,20 +198,10 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_wheel_odom_pub.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_my_dynamixel_project.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-
-INCLUDE_DIRECTORIES(/usr/local/lib)
-LINK_DIRECTORIES(/usr/local/lib)
- 
-add_executable(rviz_to_2d_pose src/rviz_to_2d_pose.cpp)
-add_executable(odom_pub src/odom_pub.cpp)
-add_executable(angular_bound_filter src/angular_bound_filter.cpp)
-target_link_libraries(rviz_to_2d_pose ${catkin_LIBRARIES})
-target_link_libraries(odom_pub ${catkin_LIBRARIES})
-target_link_libraries(angular_bound_filter ${catkin_LIBRARIES})
