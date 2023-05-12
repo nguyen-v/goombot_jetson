@@ -13,7 +13,7 @@
   <!-- Publishes: /left_wheel_vel /right_wheel_vel /left_ticks /right_ticks -->
   <node pkg="rosserial_python" type="serial_node.py" name="serial_node">
     <param name="port" value="/dev/ttyACM0"/>
-    <param name="baud" value="115200"/>
+    <param name="baud" value="921600"/>
   </node>
 
   <!-- IMU (BNO055) publisher-->
@@ -35,14 +35,14 @@
   </node>  
 
 <!-- Laser filters to limit RPLIDAR angle -->
-<node pkg="laser_filters" type="scan_to_scan_filter_chain"
+<!-- <node pkg="laser_filters" type="scan_to_scan_filter_chain"
     name="laser_filter">
   <rosparam command="load" file="$(find navstack_pub)/param/laserscan_filter.yaml" />
-</node>
+</node> -->
 
 <!-- Rviz initial pose and goals publisher -->
 <!-- Publishes: /initialpose, /move_base_simple/goal -->
-<node pkg="rviz" type="rviz" name="rviz">
+<node pkg="rviz" type="rviz" name="rviz" args="-d /home/goombot/goombot_ws/src/goombot/navstack_pub/maps/corridor.rviz">
 </node>
 
 <!-- 2D initial pose and goals publishers -->
@@ -65,7 +65,7 @@
 <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
   <param name="output_frame" value="odom"/>
   <param name="base_footprint_frame" value="base_footprint"/>
-  <param name="freq" value="30.0"/>
+  <param name="freq" value="20.0"/>
   <param name="sensor_timeout" value="1.0"/>
   <param name="odom_used" value="true"/>
   <param name="imu_used" value="true"/>
@@ -76,7 +76,7 @@
 </node>
 
   <!-- Map -->
-  <arg name="map_file" default="$(find navstack_pub)/maps/test_arena.yaml"/>
+  <arg name="map_file" default="$(find navstack_pub)/maps/comble.yaml"/>
 	
   <!-- Map server -->
   <!-- Publishes: /map, /map_metadata -->
@@ -85,7 +85,9 @@
   <!-- AMCL -->
   <!-- Subscribes: /scan, /tf, /initialpose, /map -->
   <!-- Publish: /amcl_pose, /particlecloud, /tf -->
-  <include file="$(find navstack_pub)/launch/amcl_diff_lidar.launch"/>
+  <!-- <include file="$(find navstack_pub)/launch/amcl_diff_lidar.launch"/> -->
+
+  <include file="$(find amcl)/examples/amcl_diff.launch"/>
 	
   <!-- Move Base -->
   <!-- Subscribes: /move_base_simple/goal -->
