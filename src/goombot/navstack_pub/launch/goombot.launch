@@ -35,10 +35,10 @@
   </node>  
 
 <!-- Laser filters to limit RPLIDAR angle -->
-<!-- <node pkg="laser_filters" type="scan_to_scan_filter_chain"
+<node pkg="laser_filters" type="scan_to_scan_filter_chain"
     name="laser_filter">
   <rosparam command="load" file="$(find navstack_pub)/param/laserscan_filter.yaml" />
-</node> -->
+</node>
 
 <!-- Rviz initial pose and goals publisher -->
 <!-- Publishes: /initialpose, /move_base_simple/goal -->
@@ -76,7 +76,7 @@
 </node>
 
   <!-- Map -->
-  <arg name="map_file" default="$(find navstack_pub)/maps/comble.yaml"/>
+  <arg name="map_file" default="$(find navstack_pub)/maps/spot_corridor.yaml"/>
 	
   <!-- Map server -->
   <!-- Publishes: /map, /map_metadata -->
@@ -85,9 +85,9 @@
   <!-- AMCL -->
   <!-- Subscribes: /scan, /tf, /initialpose, /map -->
   <!-- Publish: /amcl_pose, /particlecloud, /tf -->
-  <!-- <include file="$(find navstack_pub)/launch/amcl_diff_lidar.launch"/> -->
+  <include file="$(find navstack_pub)/launch/amcl_diff_lidar.launch"/>
 
-  <include file="$(find amcl)/examples/amcl_diff.launch"/>
+  <!-- <include file="$(find amcl)/examples/amcl_diff.launch"/> -->
 	
   <!-- Move Base -->
   <!-- Subscribes: /move_base_simple/goal -->
