@@ -1,8 +1,9 @@
 <launch>
 
   <!-- Transforms --> 
-  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0.0182 0 0.113 0 0 0 base_link laser 30" />
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0.0 0 0.1137 0 0 0 base_link laser 30" />
   <node pkg="tf" type="static_transform_publisher" name="base_link_to_imu" args="-0.0123 0 0.0571 0 0 0 base_link imu 30" />
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_camera" args="0.0247 0 0.142 0 0.21 3.14159 base_link camera_frame 30" />
   <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_base_link" args="0 0 0.06 0 0 0 base_footprint base_link 30" />
   <!-- robot_pose_ekf: odom to base_footprint -->
   <!-- amcl: map to odom -->
@@ -75,6 +76,7 @@
   <param name="self_diagnose" value="false"/>
 </node>
 
+
   <!-- Map -->
   <arg name="map_file" default="$(find navstack_pub)/maps/spot_corridor.yaml"/>
 	
@@ -100,5 +102,15 @@
     <rosparam file="$(find navstack_pub)/param/base_local_planner_params.yaml" command="load" />
   </node>
 
+
+<node pkg="goombot_smach" type="fsm_goombot.py" name="fsm_goombot" output="screen">
+</node> 
+
+<!-- OAK-D Lite -->
+<!-- Publishes: /oakd/yolo/rel_duplo_pose -->
+<include file="$(find oakd_ros)/launch/main.launch"/>
+
+<node pkg="duplo_pose_pub" type="duplo_pose_republisher.py" name="duplo_pose_republisher" output="screen">
+</node> 
 
 </launch>

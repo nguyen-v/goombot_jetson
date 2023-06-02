@@ -214,28 +214,28 @@ if (state_str.data == "OPEN") {
 
 switch (state) {
     case GripperState::OPEN:
-        set_gripper_position(6, 100);
-        set_gripper_position(15, 300);
+        set_gripper_position(6, 300);
+        set_gripper_position(15, 100);
         state = GripperState::MOVE_DOWN;
         break;
 
     case GripperState::MOVE_DOWN:
-        set_gripper_position(14, 170);
-        set_gripper_position(9, 520);
+        set_gripper_position(14, 810);
+        set_gripper_position(9, 230);
         state = GripperState::CLOSE;
         break;
 
     case GripperState::CLOSE:
-        set_gripper_position(6, 185);
-        set_gripper_position(15, 180);
+        set_gripper_position(6, 160);
+        set_gripper_position(15, 240);
         state = GripperState::MOVE_UP;
         break;
 
     case GripperState::MOVE_UP:
         // set_gripper_position(14, 740);
         // set_gripper_position(9, 270);
-        set_gripper_position(14, 610);
-        set_gripper_position(9, 100);
+        set_gripper_position(14, 150);
+        set_gripper_position(9, 870);
 
         state = GripperState::OPEN;
         break;
