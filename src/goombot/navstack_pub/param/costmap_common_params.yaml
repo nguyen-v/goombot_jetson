@@ -1,12 +1,12 @@
-obstacle_range: 0.5
-raytrace_range: 0.8
+obstacle_range: 2.5
+raytrace_range: 2.8
 footprint: [[-0.39, -0.2], [-0.39, 0.2], [0.32, 0.2], [0.32, -0.2]]
 map_topic: /map
 subscribe_to_updates: true
 global_frame: odom
 robot_base_frame: base_link
-update_frequency: 30.0
-publish_frequency: 30.0
+update_frequency: 15.0
+publish_frequency: 15.0
 rolling_window: false
 
 plugins:
@@ -24,4 +24,4 @@ obstacle_layer:
 
 inflation_layer:
   inflation_radius: 0.25 # robot is 400 mm wide
-  cost_scaling_factor: 3.0
+  cost_scaling_factor: 3

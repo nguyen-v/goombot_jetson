@@ -21,7 +21,8 @@ using namespace std;
 const double WHEEL_SPACING =        (0.324f);
 // #define METERS_PER_TICKS      (M_PI*WHEEL_DIAMETER/TICKS_PER_REVOLUTION)
 const double METERS_PER_TICKS =       (1/640.f);
-const double TICKS_PER_METERS =     (640.f);
+const double TICKS_PER_METERS =     (583.f);
+const double ROTATION_SLIP_FACTOR = (0.897);
 
 // Publishers
 
@@ -148,7 +149,7 @@ void odom_update() {
   double y = odom_prev.pose.pose.position.y
                             + avg_distance_travelled*sin(angle_com); 
 
-  double yaw = odom_prev.pose.pose.orientation.z + angle_turned;
+  double yaw = odom_prev.pose.pose.orientation.z + angle_turned*ROTATION_SLIP_FACTOR;
 
   // Make sure that the values are not NaN (necessary?)
   if (isnan(x) || isnan(y) || isnan(yaw)) {

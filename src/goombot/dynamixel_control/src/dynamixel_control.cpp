@@ -144,13 +144,15 @@ ros::Subscriber dynamixel_sub;
 ros::ServiceClient client;
 
 enum class GripperState {
-  OPEN,       // Gripper is fully open
-  MOVE_DOWN,  // Gripper is moving down
-  CLOSE,      // Gripper is fully closed
-  MOVE_UP,    // Gripper is moving up
+  LIFT_DOWN,  // Gripper is moving down
+  LIFT_UP,    // Gripper is moving up
+  LIFT_MID,
+  GRIP_CLOSE,      // Gripper is fully closed
+  GRIP_OPEN,       // Gripper is fully open
+  GRIP_RELEASE,
 };
 
-GripperState state = GripperState::OPEN;  // Start with the gripper open
+GripperState state = GripperState::GRIP_OPEN;  // Start with the gripper open
 
 void set_gripper_position(int id, int pos) {
     dynamixel_workbench_msgs::DynamixelCommand srv_speed;
@@ -199,46 +201,53 @@ void handle_dynamixel_pos(const std_msgs::String& state_str)
 {
     ROS_INFO("Received set pos dynamixel command");
 
-if (state_str.data == "OPEN") {
-    state = GripperState::OPEN;
-} else if (state_str.data == "MOVE_DOWN") {
-    state = GripperState::MOVE_DOWN;
-} else if (state_str.data == "CLOSE") {
-    state = GripperState::CLOSE;
-} else if (state_str.data == "MOVE_UP") {
-    state = GripperState::MOVE_UP;
+if (state_str.data == "GRIP_OPEN") {
+    state = GripperState::GRIP_OPEN;
+} else if (state_str.data == "GRIP_CLOSE") {
+    state = GripperState::GRIP_CLOSE;
+} else if (state_str.data == "GRIP_RELEASE") {
+    state = GripperState::GRIP_RELEASE;
+} else if (state_str.data == "LIFT_DOWN") {
+    state = GripperState::LIFT_DOWN;
+} else if (state_str.data == "LIFT_UP") {
+    state = GripperState::LIFT_UP;
+} else if (state_str.data == "LIFT_MID") {
+    state = GripperState::LIFT_MID;
 } else {
     ROS_ERROR("Invalid state string");
     return;
 }
 
 switch (state) {
-    case GripperState::OPEN:
-        set_gripper_position(6, 300);
-        set_gripper_position(15, 100);
-        state = GripperState::MOVE_DOWN;
-        break;
-
-    case GripperState::MOVE_DOWN:
+    case GripperState::LIFT_DOWN:
         set_gripper_position(14, 810);
         set_gripper_position(9, 230);
-        state = GripperState::CLOSE;
         break;
 
-    case GripperState::CLOSE:
-        set_gripper_position(6, 160);
-        set_gripper_position(15, 240);
-        state = GripperState::MOVE_UP;
-        break;
-
-    case GripperState::MOVE_UP:
+    case GripperState::LIFT_UP:
         // set_gripper_position(14, 740);
         // set_gripper_position(9, 270);
         set_gripper_position(14, 150);
         set_gripper_position(9, 870);
 
-        state = GripperState::OPEN;
+    case GripperState::LIFT_MID:
+        // set_gripper_position(14, 740);
+        // set_gripper_position(9, 270);
+        set_gripper_position(14, 480);
+        set_gripper_position(9, 550);
+
+    case GripperState::GRIP_OPEN:
+        set_gripper_position(6, 300);
+        set_gripper_position(15, 100);
         break;
+
+    case GripperState::GRIP_CLOSE:
+        set_gripper_position(6, 160);
+        set_gripper_position(15, 240);
+
+    case GripperState::GRIP_RELEASE:
+        set_gripper_position(6, 250);
+        set_gripper_position(15, 150);
 }
 
 }

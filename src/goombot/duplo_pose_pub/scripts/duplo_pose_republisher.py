@@ -19,7 +19,7 @@ class DuploPoseRepublisher:
         self.pose_pub = rospy.Publisher('/duplo_poses', PoseArray, queue_size=10)
         self.pose_goal_pub = rospy.Publisher('/closest_duplo_goal', PoseStamped, queue_size=10)
 
-        self.distance_goal_to_duplo = 0.2 # m
+        self.distance_goal_to_duplo = rospy.get_param('~distance_goal_to_duplo', 0.35)  # Default: 0.35 meter
         
     def pose_callback(self, msg):
         try:

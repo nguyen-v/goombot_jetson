@@ -43,7 +43,7 @@
 
 <!-- Rviz initial pose and goals publisher -->
 <!-- Publishes: /initialpose, /move_base_simple/goal -->
-<node pkg="rviz" type="rviz" name="rviz" args="-d /home/goombot/goombot_ws/src/goombot/navstack_pub/maps/corridor.rviz">
+<node pkg="rviz" type="rviz" name="rviz" args="-d /home/goombot/goombot_ws/src/goombot/navstack_pub/maps/goombot.rviz">
 </node>
 
 <!-- 2D initial pose and goals publishers -->
@@ -78,7 +78,7 @@
 
 
   <!-- Map -->
-  <arg name="map_file" default="$(find navstack_pub)/maps/spot_corridor.yaml"/>
+  <arg name="map_file" default="$(find navstack_pub)/maps/arena.yaml"/>
 	
   <!-- Map server -->
   <!-- Publishes: /map, /map_metadata -->
@@ -94,7 +94,7 @@
   <!-- Move Base -->
   <!-- Subscribes: /move_base_simple/goal -->
   <!-- Publishes: /cmd_vel -->
-  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="log">
     <rosparam file="$(find navstack_pub)/param/costmap_common_params.yaml" command="load" ns="global_costmap" />
     <rosparam file="$(find navstack_pub)/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
     <rosparam file="$(find navstack_pub)/param/local_costmap_params.yaml" command="load" ns="local_costmap" />
@@ -105,12 +105,25 @@
 
 <node pkg="goombot_smach" type="fsm_goombot.py" name="fsm_goombot" output="screen">
 </node> 
+<!-- 
+<node pkg="smach_viewer" type="smach_viewer.py" name="smach_viewer" output="screen">
+</node> -->
 
 <!-- OAK-D Lite -->
 <!-- Publishes: /oakd/yolo/rel_duplo_pose -->
 <include file="$(find oakd_ros)/launch/main.launch"/>
 
 <node pkg="duplo_pose_pub" type="duplo_pose_republisher.py" name="duplo_pose_republisher" output="screen">
+  <param name="distance_goal_to_duplo" value="0.2" />
 </node> 
+
+<node pkg="duplo_pose_pub" type="duplo_pose_filter_pub.py" name="duplo_pose_filter_pub" output="screen">
+  <param name="filter_alpha" value="0.5" />
+  <param name="distance_threshold" value = "0.7" />
+</node> 
+
+<node pkg="navstack_pub" type="goal_republisher.py" name="goal_republisher">
+  <param name="publish_frequency" value="0.5" />
+</node>
 
 </launch>
