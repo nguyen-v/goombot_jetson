@@ -29,18 +29,33 @@ class DuploGoalFilter:
         self.filtered_pose_pub = rospy.Publisher('/closest_duplo_goal_filtered', PoseStamped, queue_size=10)
         
     def pose_callback(self, pose):
-        if self.previous_pose is None:
-            self.previous_pose = pose
-            self.filtered_pose = pose
-            return
+        # if self.previous_pose is None:
+        #     self.previous_pose = pose
+        #     self.filtered_pose = pose
+        #     return
         
-        # Check if new pose is further away than dist_threshold
-        dx = self.previous_pose.pose.position.x - pose.pose.position.x
-        dy = self.previous_pose.pose.position.y - pose.pose.position.y
+        # # Check if new pose is further away than dist_threshold
+        if self.filtered_pose is None:
+            self.filtered_pose = pose
+            
+        dx = self.filtered_pose.pose.position.x - pose.pose.position.x
+        dy = self.filtered_pose.pose.position.y - pose.pose.position.y
         distance = sqrt(dx*dx + dy*dy)
         
         if distance > self.dist_threshold:
+            _, _, yaw = euler_from_quaternion([
+                pose.pose.orientation.x,
+                pose.pose.orientation.y,
+                pose.pose.orientation.z,
+                pose.pose.orientation.w
+            ])
+            orientation = quaternion_from_euler(0, 0, yaw)
+            pose.pose.orientation.x = orientation[0]
+            pose.pose.orientation.y = orientation[1]
+            pose.pose.orientation.z = orientation[2]
+            pose.pose.orientation.w = orientation[3]
             self.filtered_pose = pose
+            
         else:
             # Apply low-pass filter
             self.filtered_pose.pose.position.x = self.alpha * self.filtered_pose.pose.position.x + \
@@ -48,6 +63,19 @@ class DuploGoalFilter:
             self.filtered_pose.pose.position.y = self.alpha * self.filtered_pose.pose.position.y + \
                                                   (1 - self.alpha) * pose.pose.position.y
             self.filtered_pose.pose.position.z = 0
+
+            _, _, yaw = euler_from_quaternion([
+                pose.pose.orientation.x,
+                pose.pose.orientation.y,
+                pose.pose.orientation.z,
+                pose.pose.orientation.w
+            ])
+            orientation = quaternion_from_euler(0, 0, yaw)
+            pose.pose.orientation.x = orientation[0]
+            pose.pose.orientation.y = orientation[1]
+            pose.pose.orientation.z = orientation[2]
+            pose.pose.orientation.w = orientation[3]
+
             self.filtered_pose.pose.orientation.x = self.alpha * self.filtered_pose.pose.orientation.x + \
                                                  (1 - self.alpha) * pose.pose.orientation.x
             self.filtered_pose.pose.orientation.y = self.alpha * self.filtered_pose.pose.orientation.y + \
@@ -57,25 +85,18 @@ class DuploGoalFilter:
             self.filtered_pose.pose.orientation.w = self.alpha * self.filtered_pose.pose.orientation.w + \
                                                     (1 - self.alpha) * pose.pose.orientation.w
 
-            _, _, yaw = euler_from_quaternion([
-                pose.pose.orientation.x,
-                pose.pose.orientation.y,
-                pose.pose.orientation.z,
-                pose.pose.orientation.w
-            ])
+            
 
             # Create a new orientation quaternion with only the yaw component
-            orientation = quaternion_from_euler(0, 0, yaw)
+            
 
             # Assign the new orientation to the filtered pose
-            self.filtered_pose.pose.orientation.x = orientation[0]
-            self.filtered_pose.pose.orientation.y = orientation[1]
-            self.filtered_pose.pose.orientation.z = orientation[2]
-            self.filtered_pose.pose.orientation.w = orientation[3]
+            
         
         # Check if filtered pose is valid
         if self.is_pose_valid(self.filtered_pose):
             self.filtered_pose_pub.publish(self.filtered_pose)
+            # rospy.sleep(2)
     
     def costmap_callback(self, costmap_data):
         self.costmap_data = costmap_data

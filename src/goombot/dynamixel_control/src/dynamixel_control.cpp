@@ -220,34 +220,38 @@ if (state_str.data == "GRIP_OPEN") {
 
 switch (state) {
     case GripperState::LIFT_DOWN:
-        set_gripper_position(14, 810);
-        set_gripper_position(9, 230);
+        set_gripper_position(15, 800);
+        set_gripper_position(6, 240);
         break;
 
     case GripperState::LIFT_UP:
         // set_gripper_position(14, 740);
         // set_gripper_position(9, 270);
-        set_gripper_position(14, 150);
-        set_gripper_position(9, 870);
+        set_gripper_position(15, 180);
+        set_gripper_position(6, 860);
+        break;
 
     case GripperState::LIFT_MID:
         // set_gripper_position(14, 740);
         // set_gripper_position(9, 270);
-        set_gripper_position(14, 480);
-        set_gripper_position(9, 550);
+        set_gripper_position(15, 490);
+        set_gripper_position(6, 550);
+        break;
 
     case GripperState::GRIP_OPEN:
-        set_gripper_position(6, 300);
-        set_gripper_position(15, 100);
+        set_gripper_position(9, 590);
+        set_gripper_position(14, 720);
         break;
 
     case GripperState::GRIP_CLOSE:
-        set_gripper_position(6, 160);
-        set_gripper_position(15, 240);
+        set_gripper_position(9, 440);
+        set_gripper_position(14, 870);
+        break;
 
     case GripperState::GRIP_RELEASE:
-        set_gripper_position(6, 250);
-        set_gripper_position(15, 150);
+        set_gripper_position(9, 440);
+        set_gripper_position(14, 890);
+        break;
 }
 
 }

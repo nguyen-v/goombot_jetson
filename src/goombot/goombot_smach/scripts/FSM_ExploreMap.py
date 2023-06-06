@@ -6,12 +6,13 @@ from geometry_msgs.msg import PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import GoalStatusArray
 import math
+import actionlib
 from tf.transformations import quaternion_from_euler
 
 class ExploreMapState(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['duplo_detected','success','low_time'], input_keys=['init_time'])
-        self.points_list = [(1.0, 0, 0,math.pi/2), (0, 1, 0, 0), (-1, 0, 0, -math.pi/2), (0, -1, 0, -math.pi)]
+        self.points_list = [(1.0, 0.5, 0, 0), (0, 1.5, 0, math.pi/2), (-2, 1, 0, math.pi), (-1, -1, 0, -math.pi/2)]
         self.goal_reached = False
         self.duplo_detected = False
 
@@ -24,6 +25,9 @@ class ExploreMapState(smach.State):
         # Create a publisher for the robot goal
         self.goal_publisher = rospy.Publisher('/goombot/goal', PoseStamped, queue_size=1)
 
+        self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        self.client.wait_for_server()
+
     def status_callback(self, data):
         # Check if there is any goal status in the status array
         if len(data.status_list) > 0:
@@ -33,7 +37,7 @@ class ExploreMapState(smach.State):
             self.goal_status = latest_status
             # Check if the latest goal status is 'SUCCEEDED' (reached goal)
             if latest_status == 3:
-                rospy.loginfo("Goal reached!")
+                # rospy.loginfo("Goal reached!")
                 self.goal_reached = True
             
     def pose_callback(self, data):
@@ -63,15 +67,26 @@ class ExploreMapState(smach.State):
         return goal_pose
 
     def publish_goal(self, goal_pose):
-        goal_msg = PoseStamped()
-        goal_msg.header.stamp = rospy.Time.now()
-        goal_msg.pose = goal_pose.pose
+        goal_msg = MoveBaseGoal()
+        goal_msg.target_pose.header.stamp = rospy.Time.now()
+        goal_msg.target_pose.pose = goal_pose.pose
+        goal_msg.target_pose.header.frame_id = 'odom'
 
         # Publish the goal
-        self.goal_publisher.publish(goal_msg)
+        # self.goal_publisher.publish(goal_msg)
+        self.client.send_goal(goal_msg, done_cb=self.goal_reached_callback)
+
+    def goal_reached_callback(self, state, result):
+        if state == actionlib.GoalStatus.SUCCEEDED:
+            self.goal_reached = True
+            rospy.loginfo("Goal reached successfully!")
+        else:
+            rospy.loginfo("Goal was not reached.")
 
     def execute(self, userdata):
-        rospy.loginfo("Executing GoToPointState")
+        rospy.loginfo("Executing ExploreMap State")
+
+        self.goal_reached = False
         
         # Get a random point from the list
         point = self.get_random_point()

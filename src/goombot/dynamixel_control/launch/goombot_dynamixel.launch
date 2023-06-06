@@ -1,5 +1,5 @@
 <launch>
 <include file="$(find dynamixel_workbench_controllers)/launch/dynamixel_controllers.launch"/>
-<node pkg="dynamixel_control" type="dynamixel_control" name="dynamixel_control">
+<node pkg="dynamixel_control" type="dynamixel_control" name="dynamixel_control" output="screen">
 </node>
 </launch>

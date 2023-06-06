@@ -7,6 +7,7 @@ import tf
 from geometry_msgs.msg import PoseArray
 from geometry_msgs.msg import PoseStamped
 from tf2_geometry_msgs import do_transform_pose
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 class DuploPoseRepublisher:
     def __init__(self):
@@ -63,6 +64,19 @@ class DuploPoseRepublisher:
                     closest_pose.pose.position.y -= math.copysign(self.distance_goal_to_duplo * math.sqrt(closest_pose.pose.position.y**2/(closest_pose.pose.position.y**2+closest_pose.pose.position.x**2)), closest_pose.pose.position.y)
                 closest_pose.pose.position.x -= self.distance_goal_to_duplo * math.sqrt(closest_pose.pose.position.x**2/(closest_pose.pose.position.y**2+closest_pose.pose.position.x**2))
                 transformed_goal = do_transform_pose(closest_pose, transform)
+                # _, _, yaw = euler_from_quaternion([
+                #     transformed_goal.pose.orientation.x,
+                #     transformed_goal.pose.orientation.y,
+                #     transformed_goal.pose.orientation.z,
+                #     transformed_goal.pose.orientation.w
+                # ])
+                # orientation = quaternion_from_euler(0, 0, yaw)
+                # transformed_goal.pose.orientation.x = orientation[0]
+                # transformed_goal.pose.orientation.y = orientation[1]
+                # transformed_goal.pose.orientation.z = orientation[2]
+                # transformed_goal.pose.orientation.w = orientation[3]
+
+
                 self.pose_goal_pub.publish(transformed_goal)
 
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
