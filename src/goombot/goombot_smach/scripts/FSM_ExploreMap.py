@@ -17,7 +17,7 @@ class ExploreMapState(smach.State):
         self.duplo_detected = False
 
         # Create a subscriber for move_base/status topic
-        self.status_subscriber = rospy.Subscriber('move_base/status', GoalStatusArray, self.status_callback)
+        # self.status_subscriber = rospy.Subscriber('move_base/status', GoalStatusArray, self.status_callback)
 
         # Create a subscriber for the object PoseStamped topic
         self.pose_subscriber = rospy.Subscriber('/closest_duplo_goal_filtered', PoseStamped, self.pose_callback)
@@ -26,24 +26,27 @@ class ExploreMapState(smach.State):
         self.goal_publisher = rospy.Publisher('/goombot/goal', PoseStamped, queue_size=1)
 
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        self.is_in_state=False
         self.client.wait_for_server()
 
     def status_callback(self, data):
-        # Check if there is any goal status in the status array
-        if len(data.status_list) > 0:
-            # Get the status of the latest goal
-            latest_status = data.status_list[-1].status
-            # Get the status of the latest goal
-            self.goal_status = latest_status
-            # Check if the latest goal status is 'SUCCEEDED' (reached goal)
-            if latest_status == 3:
-                # rospy.loginfo("Goal reached!")
-                self.goal_reached = True
-            
+        if self.is_in_state:
+            # Check if there is any goal status in the status array
+            if len(data.status_list) > 0:
+                # Get the status of the latest goal
+                latest_status = data.status_list[-1].status
+                # Get the status of the latest goal
+                self.goal_status = latest_status
+                # Check if the latest goal status is 'SUCCEEDED' (reached goal)
+                if latest_status == 3:
+                    # rospy.loginfo("Goal reached!")
+                    self.goal_reached = True
+                
     def pose_callback(self, data):
         # Check if the PoseStamped is not null
-        if data is not None:
-            self.duplo_detected = True
+        if self.is_in_state:
+            if data is not None:
+                self.duplo_detected = True
 
     def get_random_point(self):
         # Get a random point from the points list
@@ -67,25 +70,27 @@ class ExploreMapState(smach.State):
         return goal_pose
 
     def publish_goal(self, goal_pose):
-        goal_msg = MoveBaseGoal()
-        goal_msg.target_pose.header.stamp = rospy.Time.now()
-        goal_msg.target_pose.pose = goal_pose.pose
-        goal_msg.target_pose.header.frame_id = 'odom'
+        if self.is_in_state:
+            goal_msg = MoveBaseGoal()
+            goal_msg.target_pose.header.stamp = rospy.Time.now()
+            goal_msg.target_pose.pose = goal_pose.pose
+            goal_msg.target_pose.header.frame_id = 'odom'
 
-        # Publish the goal
-        # self.goal_publisher.publish(goal_msg)
-        self.client.send_goal(goal_msg, done_cb=self.goal_reached_callback)
+            # Publish the goal
+            # self.goal_publisher.publish(goal_msg)
+            self.client.send_goal(goal_msg, done_cb=self.goal_reached_callback)
 
     def goal_reached_callback(self, state, result):
-        if state == actionlib.GoalStatus.SUCCEEDED:
-            self.goal_reached = True
-            rospy.loginfo("Goal reached successfully!")
-        else:
-            rospy.loginfo("Goal was not reached.")
+        if self.is_in_state:
+            if state == actionlib.GoalStatus.SUCCEEDED:
+                self.goal_reached = True
+                rospy.loginfo("Goal reached successfully!")
+            else:
+                rospy.loginfo("Goal was not reached.")
 
     def execute(self, userdata):
         rospy.loginfo("Executing ExploreMap State")
-
+        self.is_in_state=True
         self.goal_reached = False
         
         # Get a random point from the list
@@ -97,10 +102,13 @@ class ExploreMapState(smach.State):
         
         while not rospy.is_shutdown():
             if self.goal_reached:
+                self.is_in_state=False
                 return 'success'
             
             if self.duplo_detected:
+                self.is_in_state=False
                 return 'duplo_detected'
 
             if rospy.Time.now()-init_time>rospy.Duration.from_sec(9*60):
+                self.is_in_state=False
                 return 'low_time'

@@ -36,9 +36,15 @@ class GoToDuploState(smach.State):
 
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.client.wait_for_server()
+        self.is_in_state = False
 
     def execute(self, userdata):
         rospy.loginfo("Executing GoToDuploState")
+        self.is_in_state = True
+        self.duplo_reached = False
+
+        self.closest_duplo_sub = rospy.Subscriber("/closest_duplo_goal_filtered", PoseStamped, self.closest_duplo_callback)
+
         self.goal = None
 
         self.last_detection_time = rospy.Time.now()
@@ -55,6 +61,7 @@ class GoToDuploState(smach.State):
 
         while self.goal is None:
             if rospy.Time.now() - self.last_detection_time > rospy.Duration(5):
+                self.closest_duplo_sub.unregister()
                 return "failure"
             rospy.sleep(1)
 
@@ -72,55 +79,68 @@ class GoToDuploState(smach.State):
             
             if self.duplo_reached:
                 self.client.cancel_goal()
+                self.closest_duplo_sub.unregister()
                 self.duplo_reached = False
+                self.is_in_state = False
                 return "success"
 
             # Check if no detection received for 5 seconds
             if rospy.Time.now() - self.last_detection_time > rospy.Duration(5):
                 rospy.loginfo("Go to duplo hasn't seen a duplo in 5s.")
+                self.closest_duplo_sub.unregister()
                 self.client.cancel_goal()
+                self.is_in_state = False
                 return "failure"
 
             # Check if task initialization time exceeds 15 seconds
             if rospy.Time.now() - self.init_task_time > rospy.Duration(30):
                 rospy.loginfo("Go to duplo took too long.")
+                self.closest_duplo_sub.unregister()
                 self.client.cancel_goal()
+                self.is_in_state = False
                 return "failure"
 
             # Check if total task execution time exceeds 9 minutes
             if rospy.Time.now() - init_time > rospy.Duration(540):
                 rospy.loginfo("Low on time.")
+                self.closest_duplo_sub.unregister()
                 self.client.cancel_goal()
+                self.is_in_state = False
                 return "low_time"
 
         #     rospy.sleep(0.1)  # Control the loop rate
-        self.client.wait_for_result()
-        return "success"
+        # self.client.wait_for_result()
+        # return "success"
 
     def publish_goal(self, goal_pose):
-        goal_msg = MoveBaseGoal()
-        goal_msg.target_pose.header.stamp = rospy.Time.now()
-        goal_msg.target_pose.pose = goal_pose.pose
-        goal_msg.target_pose.header.frame_id = 'odom'
+        if self.is_in_state:
+            goal_msg = MoveBaseGoal()
+            goal_msg.target_pose.header.stamp = rospy.Time.now()
+            goal_msg.target_pose.pose = goal_pose.pose
+            goal_msg.target_pose.header.frame_id = 'odom'
 
-        # Publish the goal
-        # self.goal_publisher.publish(goal_msg)
-        self.client.send_goal(goal_msg, done_cb=self.goal_reached_callback)
+            # Publish the goal
+            # self.goal_publisher.publish(goal_msg)
+            self.client.send_goal(goal_msg, done_cb=self.goal_reached_callback)
 
     def goal_reached_callback(self, state, result):
         if state == actionlib.GoalStatus.SUCCEEDED:
             self.duplo_reached = True
             rospy.loginfo("Duplo reached successfully!")
         else:
+            self.duplo_reached = False
             rospy.loginfo("Goal was not reached.")
 
     def closest_duplo_callback(self, msg):
-        # Update last_detection_time when new detection received
-        self.goal = msg
-        # self.goal_pub.publish(self.goal)
-        # self.client.send_goal(self.goal)
-        self.publish_goal(self.goal)
-        self.last_detection_time = rospy.Time.now()
+        if self.is_in_state:
+            # Update last_detection_time when new detection received
+            self.goal = msg
+            # self.goal_pub.publish(self.goal)
+            # self.client.send_goal(self.goal)
+            rospy.loginfo("publishing goal gotoduplo")
+            self.publish_goal(self.goal)
+
+            self.last_detection_time = rospy.Time.now()
 
     def odom_callback(self, msg):
         # Update current_pose using odometry data

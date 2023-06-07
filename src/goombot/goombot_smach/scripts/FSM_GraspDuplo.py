@@ -25,17 +25,17 @@ class GraspDuploState(smach.State):
 
         # Grasp object
         self.publish_set_dynamixel_pos('LIFT_MID')
-        rospy.sleep(10)
+        rospy.sleep(2)
         self.publish_set_dynamixel_pos('GRIP_OPEN')
-        rospy.sleep(10)
+        rospy.sleep(2)
         self.publish_set_dynamixel_pos('LIFT_DOWN')
-        rospy.sleep(10)
+        rospy.sleep(5)
         self.publish_set_dynamixel_pos('GRIP_CLOSE')
-        rospy.sleep(10)
+        rospy.sleep(5)
         self.publish_set_dynamixel_pos('LIFT_UP')
-        rospy.sleep(10)
+        rospy.sleep(5)
         self.publish_set_dynamixel_pos('GRIP_RELEASE')
-        rospy.sleep(10)
+        rospy.sleep(3)
         self.publish_set_dynamixel_pos('GRIP_CLOSE')
 
         # if rospy.Time.now() - init_time > rospy.Duration(540):
