@@ -107,6 +107,7 @@ class ExploreMapState(smach.State):
             
             if self.duplo_detected:
                 self.is_in_state=False
+                self.client.cancel_all_goals()
                 return 'duplo_detected'
 
             if rospy.Time.now()-init_time>rospy.Duration.from_sec(9*60):

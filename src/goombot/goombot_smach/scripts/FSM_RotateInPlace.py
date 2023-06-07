@@ -59,13 +59,20 @@ class RotateInPlaceState(smach.State):
         return angle
     def calculate_angle_difference(self, A, B):
         # Convert A and B to the range 0 to 2pi
-        A_normalized = (A + 2 * math.pi) % (2 * math.pi)
-        B_normalized = (B + 2 * math.pi) % (2 * math.pi)
+        # A_normalized = (A + 2 * math.pi) % (2 * math.pi)
+        diff = A-B
+        if diff < 0:
+            diff += 2*math.pi
+        diff = abs(diff % (2*math.pi))
 
-        # Calculate the absolute difference between A and B
-        difference = abs(A_normalized - B_normalized)
+        # B_normalized = (A-B + 2 * math.pi) % (2 * math.pi)
 
-        return difference
+        # # Calculate the absolute difference between A and B
+        # difference = abs(B_normalized)
+        # rospy.loginfo("current %f, init %f, diff %f", A_normalized, B_normalized, difference)
+        rospy.loginfo("diff %f", diff)
+
+        return diff
 
     def execute(self, userdata):
         rospy.loginfo('Executing RotateInPlace state')
@@ -83,7 +90,9 @@ class RotateInPlaceState(smach.State):
                 yaw_diff = self.calculate_angle_difference(self.current_yaw, self.initial_yaw)
 
                 # Check if the goal (270-degree rotation) is reached
+                # rospy.loginfo("yaw diff %f", yaw_diff)
                 if yaw_diff >= 1.5 * math.pi:
+                    
                     self.goal_reached = True
 
             # Publish a twist command for rotation
