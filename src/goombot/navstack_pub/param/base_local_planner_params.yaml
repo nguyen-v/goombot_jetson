@@ -28,8 +28,8 @@ TrajectoryPlannerROS:
   escape_vel: -0.05
 
   acc_lim_theta: 10
-  acc_lim_x: 0.1
-  acc_lim_Y: 0.1
+  acc_lim_x: 1
+  acc_lim_Y: 1
 
   holonomic_robot: false
 
@@ -38,6 +38,7 @@ TrajectoryPlannerROS:
   xy_goal_tolerance: 0.05
   yaw_goal_tolerance: 0.2
   pdist_scale: 1.5
+  gdist_scale: 1.5
   controller_frequency: 15
   sim_time: 3.0
 

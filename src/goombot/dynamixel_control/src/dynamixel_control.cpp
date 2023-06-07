@@ -150,6 +150,9 @@ enum class GripperState {
   GRIP_CLOSE,      // Gripper is fully closed
   GRIP_OPEN,       // Gripper is fully open
   GRIP_RELEASE,
+  CONTAINER_OPEN,
+  CONTAINER_CLOSE,
+  CONTAINER_MID
 };
 
 GripperState state = GripperState::GRIP_OPEN;  // Start with the gripper open
@@ -182,18 +185,71 @@ void set_gripper_position(int id, int pos) {
     {
         ROS_ERROR_STREAM("Failed to call service for servo " << id << " position");
     }
-    dynamixel_workbench_msgs::DynamixelCommand srv_torque;
+    dynamixel_workbench_msgs::DynamixelCommand srv_torque6;
     srv_speed.request.command = "";
-    srv_speed.request.id = id;
+    srv_speed.request.id = 6;
     srv_speed.request.addr_name = "Torque_Limit";
     srv_speed.request.value = 1023;
     if (client.call(srv_speed))
     {
-        ROS_INFO_STREAM("Service call for servo " << id << " speed successful");
+        ROS_INFO_STREAM("Service call for servo " << 6 << " torque successful");
     }
     else
     {
-        ROS_ERROR_STREAM("Failed to call service for servo " << id << " speed");
+        ROS_ERROR_STREAM("Failed to call service for servo " << 6 << " speed");
+    }
+    dynamixel_workbench_msgs::DynamixelCommand srv_torque9;
+    srv_speed.request.command = "";
+    srv_speed.request.id = 9;
+    srv_speed.request.addr_name = "Torque_Limit";
+    srv_speed.request.value = 1000;
+    if (client.call(srv_speed))
+    {
+        ROS_INFO_STREAM("Service call for servo " << 9 << " torque successful");
+    }
+    else
+    {
+        ROS_ERROR_STREAM("Failed to call service for servo " << 9 << " speed");
+    }
+    dynamixel_workbench_msgs::DynamixelCommand srv_torque18;
+    srv_speed.request.command = "";
+    srv_speed.request.id = 18;
+    srv_speed.request.addr_name = "Torque_Limit";
+    srv_speed.request.value = 1023;
+    if (client.call(srv_speed))
+    {
+        ROS_INFO_STREAM("Service call for servo " << 18 << " torque successful");
+    }
+    else
+    {
+        ROS_ERROR_STREAM("Failed to call service for servo " << 18 << " speed");
+    }
+    dynamixel_workbench_msgs::DynamixelCommand srv_torque14;
+    srv_speed.request.command = "";
+    srv_speed.request.id = 14;
+    srv_speed.request.addr_name = "Torque_Limit";
+    srv_speed.request.value = 1023;
+    if (client.call(srv_speed))
+    {
+        ROS_INFO_STREAM("Service call for servo " << 14 << " torque successful");
+    }
+    else
+    {
+        ROS_ERROR_STREAM("Failed to call service for servo " << 14 << " speed");
+    }
+
+    dynamixel_workbench_msgs::DynamixelCommand srv_torque7;
+    srv_speed.request.command = "";
+    srv_speed.request.id = 7;
+    srv_speed.request.addr_name = "Torque_Limit";
+    srv_speed.request.value = 1023;
+    if (client.call(srv_speed))
+    {
+        ROS_INFO_STREAM("Service call for servo " << 7 << " torque successful");
+    }
+    else
+    {
+        ROS_ERROR_STREAM("Failed to call service for servo " << 7 << " speed");
     }
 }
 
@@ -213,44 +269,67 @@ if (state_str.data == "GRIP_OPEN") {
     state = GripperState::LIFT_UP;
 } else if (state_str.data == "LIFT_MID") {
     state = GripperState::LIFT_MID;
+} else if (state_str.data == "CONTAINER_OPEN") {
+    state = GripperState::CONTAINER_OPEN;
+} else if (state_str.data == "CONTAINER_CLOSE") {
+    state = GripperState::CONTAINER_CLOSE;
+} else if (state_str.data == "CONTAINER_MID") {
+    state = GripperState::CONTAINER_MID;
 } else {
     ROS_ERROR("Invalid state string");
     return;
 }
 
+
 switch (state) {
     case GripperState::LIFT_DOWN:
-        set_gripper_position(15, 800);
-        set_gripper_position(6, 240);
+        set_gripper_position(18, 770);
+        set_gripper_position(6, 250);
         break;
 
     case GripperState::LIFT_UP:
         // set_gripper_position(14, 740);
         // set_gripper_position(9, 270);
-        set_gripper_position(15, 180);
-        set_gripper_position(6, 860);
+        // set_gripper_position(15, 200);
+        set_gripper_position(18, 200);
+        set_gripper_position(6, 820);
+        
         break;
 
     case GripperState::LIFT_MID:
         // set_gripper_position(14, 740);
         // set_gripper_position(9, 270);
-        set_gripper_position(15, 490);
-        set_gripper_position(6, 550);
+        set_gripper_position(18, 500);
+        set_gripper_position(6, 500);
         break;
 
     case GripperState::GRIP_OPEN:
-        set_gripper_position(9, 590);
-        set_gripper_position(14, 720);
+        set_gripper_position(9, 700);
+        set_gripper_position(14, 640);
         break;
 
     case GripperState::GRIP_CLOSE:
-        set_gripper_position(9, 440);
-        set_gripper_position(14, 870);
+        //set_gripper_position(9, 490);
+        //set_gripper_position(14, 820);
+        set_gripper_position(9, 500);
+        set_gripper_position(14, 820);
         break;
 
     case GripperState::GRIP_RELEASE:
-        set_gripper_position(9, 440);
-        set_gripper_position(14, 890);
+        set_gripper_position(9, 400);
+        set_gripper_position(14, 920);
+        break;
+
+    case GripperState::CONTAINER_OPEN:
+        set_gripper_position(7, 800);
+        break;
+
+    case GripperState::CONTAINER_CLOSE:
+        set_gripper_position(7, 470);
+        break;
+    
+    case GripperState::CONTAINER_MID:
+        set_gripper_position(7, 700);
         break;
 }
 

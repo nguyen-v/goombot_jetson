@@ -37,6 +37,7 @@ class GoToDuploState(smach.State):
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.client.wait_for_server()
         self.is_in_state = False
+        self.last_publish_time = rospy.Time.now()
 
     def execute(self, userdata):
         rospy.loginfo("Executing GoToDuploState")
@@ -122,6 +123,7 @@ class GoToDuploState(smach.State):
             # Publish the goal
             # self.goal_publisher.publish(goal_msg)
             self.client.send_goal(goal_msg, done_cb=self.goal_reached_callback)
+            self.last_publish_time = rospy.Time.now()
 
     def goal_reached_callback(self, state, result):
         if state == actionlib.GoalStatus.SUCCEEDED:
@@ -131,16 +133,25 @@ class GoToDuploState(smach.State):
             self.duplo_reached = False
             rospy.loginfo("Goal was not reached.")
 
+    # def closest_duplo_callback(self, msg):
+    #     if self.is_in_state:
+    #         # Update last_detection_time when new detection received
+    #         self.goal = msg
+    #         # self.goal_pub.publish(self.goal)
+    #         # self.client.send_goal(self.goal)
+    #         rospy.loginfo("publishing goal gotoduplo")
+    #         self.publish_goal(self.goal)
+
+    #         self.last_detection_time = rospy.Time.now()
     def closest_duplo_callback(self, msg):
         if self.is_in_state:
-            # Update last_detection_time when new detection received
-            self.goal = msg
-            # self.goal_pub.publish(self.goal)
-            # self.client.send_goal(self.goal)
-            rospy.loginfo("publishing goal gotoduplo")
-            self.publish_goal(self.goal)
+            current_time = rospy.Time.now()
+            time_since_last_publish = current_time - self.last_publish_time
+            if time_since_last_publish >= rospy.Duration(0.5):  # Limit the frequency to 1 publish per second
+                self.goal = msg
+                self.publish_goal(self.goal)
 
-            self.last_detection_time = rospy.Time.now()
+                self.last_detection_time = current_time
 
     def odom_callback(self, msg):
         # Update current_pose using odometry data

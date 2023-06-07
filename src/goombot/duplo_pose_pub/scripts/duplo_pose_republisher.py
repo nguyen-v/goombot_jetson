@@ -76,7 +76,7 @@ class DuploPoseRepublisher:
                 # transformed_goal.pose.orientation.z = orientation[2]
                 # transformed_goal.pose.orientation.w = orientation[3]
 
-                # if closest_pose.pose.position.x > 0.3:
+                # if closest_pose.pose.position.x > 0.25:
                 self.pose_goal_pub.publish(transformed_goal)
 
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:

@@ -52,7 +52,8 @@ def main():
         smach.StateMachine.add('EXPLORE_MAP', ExploreMapState(),
                                transitions={'duplo_detected': 'GO_TO_DUPLO',
                                             'low_time': 'GO_TO_DROP_ZONE',
-                                            'success' : 'ROTATE_IN_PLACE'},
+                                            'success' : 'ROTATE_IN_PLACE',
+                                            'failure' : 'EXPLORE_MAP'},
                                remapping={'init_time': 'init_time'})
         
         smach.StateMachine.add('GO_TO_DUPLO', GoToDuploState(),
