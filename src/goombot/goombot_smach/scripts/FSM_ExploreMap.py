@@ -5,20 +5,28 @@ import actionlib
 from geometry_msgs.msg import PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import GoalStatusArray
+from std_msgs.msg import Empty
 import math
 import actionlib
 from tf.transformations import quaternion_from_euler
+from geometry_msgs.msg import PoseWithCovarianceStamped
+import numpy as np
 
 class ExploreMapState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['duplo_detected','success','low_time', 'failure'], input_keys=['init_time'])
-        self.points_list = [(1.0, 0.5, 0, 0), (0, 1.5, 0, math.pi/2), (-2, 1, 0, math.pi), (-1, -1, 0, -math.pi/2)]
+        smach.State.__init__(self, outcomes=['duplo_detected','success','low_time', 'failure', 'pause'], input_keys=['init_time', 'explore_state_in'], output_keys=['explore_state_out'])
+        #self.points_list = [(1.0, 0.5, 0, 0), (0, 1.5, 0, math.pi/2), (-2, 1, 0, math.pi), (-1, -1, 0, -math.pi/2)]
+        self.points_list = [(0, 0, 0, 0),(2, 0, 0, math.pi/4), (0, 2.5, 0, math.pi/2), (1, 1.5, 0, 0), (-1.5, 0, 0, math.pi),(-2.5, 1, 0, math.pi),(-3.5, 1.5, 0, 3*math.pi/2),(-3.5, 0, 0, math.pi/4),(-4, 3, 0, math.pi/4),(-3, 3, 0, 2*math.pi/3),(-1, -2, 0, math.pi),(-1.5, -3, 0, 0),(4, -3, 0, 0),(2.5, -1, 0, math.pi)]
+        self.button_location = [(-0.704604974204, -3.46959064946, 0, math.pi/2)]
         self.goal_reached = False
         self.duplo_detected = False
         self.goal_not_reached = False
+        self.point = None
 
         self.loop_rate = rospy.Rate(1)
 
+        self.current_pose = PoseStamped()
+        rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, self.amcl_callback)
         # Create a subscriber for move_base/status topic
         # self.status_subscriber = rospy.Subscriber('move_base/status', GoalStatusArray, self.status_callback)
 
@@ -28,11 +36,21 @@ class ExploreMapState(smach.State):
         # Create a publisher for the robot goal
         self.goal_publisher = rospy.Publisher('/goombot/goal', PoseStamped, queue_size=1)
 
+        self.pause_subscriber = rospy.Subscriber('pause_robot', Empty, self.pause_callback)
+
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.is_in_state=False
         self.point_index = 0
         self.client.wait_for_server()
         self.init_task_time = rospy.Time.now()
+        self.pause_robot = False
+
+
+    def pause_callback(self, msg):
+        if self.is_in_state:
+            rospy.loginfo("Pause signal received, transitioning to Pause state")
+            self.pause_robot = True
+        
 
     def status_callback(self, data):
         if self.is_in_state:
@@ -49,8 +67,14 @@ class ExploreMapState(smach.State):
                 
     def pose_callback(self, data):
         # Check if the PoseStamped is not null
-        if self.is_in_state:
-            if data is not None:
+        # if self.current_pose.pose.position.x >= 1.5 and 2 <= self.current_pose.pose.position.y:
+        #     pass
+        # else:
+        # if self.is_in_state:
+        if data is not None:
+            if data.pose.position.x >= 1.5 and data.pose.position.y >= 2:
+                pass
+            else:
                 self.duplo_detected = True
 
     def get_random_point(self):
@@ -74,9 +98,9 @@ class ExploreMapState(smach.State):
         
         return goal_pose
 
-    def get_point(self, index):
+    def get_point(self, point_list, index):
         # Get a random point from the points list
-        point = self.points_list[index]
+        point = point_list[index]
 
 
         
@@ -100,7 +124,7 @@ class ExploreMapState(smach.State):
             goal_msg = MoveBaseGoal()
             goal_msg.target_pose.header.stamp = rospy.Time.now()
             goal_msg.target_pose.pose = goal_pose.pose
-            goal_msg.target_pose.header.frame_id = 'odom'
+            goal_msg.target_pose.header.frame_id = 'map'
 
             # Publish the goal
             # self.goal_publisher.publish(goal_msg)
@@ -122,25 +146,48 @@ class ExploreMapState(smach.State):
         self.goal_reached = False
         self.goal_not_reached = False
         self.duplo_detected = False
+        self.pause_robot = False
+
+        init_time = userdata.init_time
         
         # Get a random point from the list
         # point = self.get_random_point()
+        
+
         if self.point_index >= len(self.points_list):
             self.point_index = 0
-        point = self.get_point(self.point_index)
+
+        if userdata.explore_state_in == "GO_TO_BUTTON":
+            self.point = self.get_point(self.button_location, 0)
+        else:
+            self.point = self.get_point(self.points_list, self.point_index)
         
-        init_time = userdata.init_time
+        
         # Publish the goal
-        self.publish_goal(point)
+        self.publish_goal(self.point)
         
         while not rospy.is_shutdown():
-            if self.goal_reached:
+
+            robot_to_goal_distance = np.linalg.norm([self.point.pose.position.x - self.current_pose.pose.position.x,
+                                                     self.point.pose.position.y - self.current_pose.pose.position.y])
+            if robot_to_goal_distance < 0.30 and userdata.explore_state_in == "EXPLORE_MAP":
+                rospy.loginfo ("close to explore goal")
+                self.is_in_state = False
+                return "success" 
+            
+            if self.pause_robot:
+                return 'pause'
+            
+            elif self.goal_reached:
                 self.is_in_state=False
                 if self.point_index < len(self.points_list):
                     self.point_index += 1
                 else:
                     self.point_index = 0
                 self.client.cancel_all_goals()
+                if userdata.explore_state_in == "GO_TO_BUTTON":
+                    userdata.explore_state_out = "EXPLORE_MAP"
+                    rospy.loginfo("Arrived to button")
                 return 'success'
             
             elif self.goal_not_reached:
@@ -184,5 +231,11 @@ class ExploreMapState(smach.State):
             else:
                 pass
             
-            self.publish_goal(point)
+            self.publish_goal(self.point)
             self.loop_rate.sleep()
+
+
+    def amcl_callback(self, msg):
+    # Access the pose information from the amcl_pose message
+        self.current_pose = PoseStamped()
+        self.current_pose.pose = msg.pose.pose

@@ -7,23 +7,36 @@ from geometry_msgs.msg import Twist, PoseStamped
 from nav_msgs.msg import Odometry
 import tf
 import math
+from std_msgs.msg import Empty
+from geometry_msgs.msg import PoseWithCovarianceStamped
 
 class RotateInPlaceState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['no_duplo', 'duplo_detected', 'low_time'], input_keys=['init_time'])
+        smach.State.__init__(self, outcomes=['no_duplo', 'duplo_detected', 'low_time', 'pause'], input_keys=['init_time', 'explore_state'])
 
         self.initial_yaw = None
-        self.angular_speed = 0.2  # Adjust the angular speed as per your requirements
+        self.angular_speed = 0.8  # Adjust the angular speed as per your requirements
         self.goal_reached = False
         self.duplo_detected = False
         self.out_of_time = False
         self.current_yaw = None
+        self.timer = None
 
+        self.current_pose = PoseStamped()
         self.republisher_pub = rospy.Publisher('/republish_goal', Bool, queue_size=1)
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
         self.odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback)
         self.closest_duplo_sub = rospy.Subscriber('/closest_duplo_goal_filtered', PoseStamped, self.duplo_callback)
         self.is_in_state=False
+        self.pause_subscriber = rospy.Subscriber('pause_robot', Empty, self.pause_callback)
+
+        self.pause_robot = False
+
+
+    def pause_callback(self, msg):
+        if self.is_in_state:
+            rospy.loginfo("Pause signal received, transitioning to Pause state")
+            self.pause_robot = True
 
     def odom_callback(self, msg):
         if self.initial_yaw is None:
@@ -47,8 +60,12 @@ class RotateInPlaceState(smach.State):
         _, _, self.current_yaw = tf.transformations.euler_from_quaternion(quaternion)
 
     def duplo_callback(self, msg):
-        # rospy.loginfo("Duplo detected at x=%f y=%f", msg.pose.position.x, msg.pose.position.y)
-        self.duplo_detected = True
+        if self.is_in_state:
+            if msg is not None:
+                if msg.pose.position.x >= 1.5 and msg.pose.position.y >= 2:
+                    pass
+                else:
+                    self.duplo_detected = True
 
     def normalize_angle(self, angle):
         angle = math.fmod(angle, 2 * math.pi)
@@ -73,27 +90,45 @@ class RotateInPlaceState(smach.State):
         rospy.loginfo("diff %f", diff)
 
         return diff
+    
+    def timer_callback(self, event):
+        rospy.loginfo("timer callback")
+
+        # Stop the timer
+        self.timer.shutdown()
+        self.goal_reached = True
+        # pass
+    
 
     def execute(self, userdata):
         rospy.loginfo('Executing RotateInPlace state')
+        self.pause_robot = False
         self.is_in_state=True
 
         # Publish False on /republish_goal
         self.republisher_pub.publish(Bool(False))
 
         init_time = userdata.init_time
+        explore_state = userdata.explore_state
 
         # Rotate until a full 360-degree rotation is completed or duplo is detected
+        self.timer = rospy.Timer(rospy.Duration(2*math.pi/self.angular_speed), self.timer_callback)
+        
         while not rospy.is_shutdown() and not self.goal_reached and not self.duplo_detected and not self.out_of_time:
-            if self.current_yaw is not None:
+            if explore_state == "GO_TO_BUTTON":
+                self.goal_reached = False
+                rospy.loginfo('Transitioning to explore map with button goal')
+                self.is_in_state=False
+                return "no_duplo"
+            # if self.current_yaw is not None:
                 # Calculate the difference between the current yaw and initial yaw
-                yaw_diff = self.calculate_angle_difference(self.current_yaw, self.initial_yaw)
+                # yaw_diff = self.calculate_angle_difference(self.current_yaw, self.initial_yaw)
 
-                # Check if the goal (270-degree rotation) is reached
-                # rospy.loginfo("yaw diff %f", yaw_diff)
-                if yaw_diff >= 1.5 * math.pi:
+                # # Check if the goal (270-degree rotation) is reached
+                # # rospy.loginfo("yaw diff %f", yaw_diff)
+                # if yaw_diff >= 1.5 * math.pi:
                     
-                    self.goal_reached = True
+                #     self.goal_reached = True
 
             # Publish a twist command for rotation
             twist_cmd = Twist()
@@ -111,7 +146,9 @@ class RotateInPlaceState(smach.State):
         # Publish False on /republish_goal
         self.republisher_pub.publish(Bool(False))
         self.initial_yaw = None
-
+        if self.pause_robot:
+            self.is_in_state = False
+            return 'pause'
         if self.duplo_detected:
             self.duplo_detected = False
             rospy.loginfo('Duplo detected')
@@ -127,3 +164,4 @@ class RotateInPlaceState(smach.State):
             rospy.loginfo('No duplo detected')
             self.is_in_state=False
             return 'no_duplo'
+        

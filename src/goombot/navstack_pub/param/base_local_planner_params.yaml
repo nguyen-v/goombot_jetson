@@ -20,8 +20,8 @@ TrajectoryPlannerROS:
   max_vel_x: 0.2
   min_vel_x: 0.03
 
-  max_vel_theta: 0.5
-  min_vel_theta: -0.5
+  max_vel_theta: 1
+  min_vel_theta: -1
   min_in_place_vel_theta: 0.1
   latch_xy_goal_tolerance: false
 
@@ -36,8 +36,8 @@ TrajectoryPlannerROS:
   meter_scoring: true
 
   xy_goal_tolerance: 0.05
-  yaw_goal_tolerance: 0.2
-  pdist_scale: 1.5
+  yaw_goal_tolerance: 0.1
+  pdist_scale: 5.0
   gdist_scale: 1.5
   controller_frequency: 15
   sim_time: 3.0

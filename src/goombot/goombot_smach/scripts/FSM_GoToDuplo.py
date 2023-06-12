@@ -8,12 +8,15 @@ from std_msgs.msg import Bool
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
 import numpy as np
+from std_msgs.msg import Empty
+
+from geometry_msgs.msg import PoseWithCovarianceStamped
 
 # Define state GO_TO_DUPLO
 class GoToDuploState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["success", "failure", "low_time"], input_keys=['init_time'])
-
+        smach.State.__init__(self, outcomes=["success", "failure", "low_time", "pause"], input_keys=['init_time'])
+        self.is_in_state = False
         # Initialize the last_detection_time
         self.last_detection_time = rospy.Time.now()
 
@@ -25,7 +28,9 @@ class GoToDuploState(smach.State):
         self.duplo_reached = False
 
         # Subscribe to the odometry topic
-        self.odom_sub = rospy.Subscriber("/odom", Odometry, self.odom_callback)
+        # self.odom_sub = rospy.Subscriber("/odom", Odometry, self.odom_callback)
+        rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, self.amcl_callback)
+
 
         self.goal_pub = rospy.Publisher('/goombot/goal', PoseStamped, queue_size=1)
 
@@ -33,14 +38,24 @@ class GoToDuploState(smach.State):
 
         self.closest_duplo_sub = rospy.Subscriber("/closest_duplo_goal_filtered", PoseStamped, self.closest_duplo_callback)
         self.status_sub = rospy.Subscriber('/move_base/status', GoalStatusArray, self.status_callback)
-
+        self.pause_subscriber = rospy.Subscriber('pause_robot', Empty, self.pause_callback)
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.client.wait_for_server()
-        self.is_in_state = False
+        
         self.last_publish_time = rospy.Time.now()
+
+        self.pause_robot = False
+
+
+    def pause_callback(self, msg):
+        if self.is_in_state:
+            rospy.loginfo("Pause signal received, transitioning to Pause state")
+            self.pause_robot = True
 
     def execute(self, userdata):
         rospy.loginfo("Executing GoToDuploState")
+
+        self.pause_robot = False
         self.is_in_state = True
         self.duplo_reached = False
 
@@ -63,6 +78,7 @@ class GoToDuploState(smach.State):
         while self.goal is None:
             if rospy.Time.now() - self.last_detection_time > rospy.Duration(5):
                 self.closest_duplo_sub.unregister()
+                self.is_in_state = False
                 return "failure"
             rospy.sleep(1)
 
@@ -72,11 +88,13 @@ class GoToDuploState(smach.State):
             
         
             # Check if distance between robot and goal is less than 20 cm
-            # robot_to_goal_distance = np.linalg.norm([self.goal.pose.position.x - self.current_pose.pose.position.x,
-            #                                          self.goal.pose.position.y - self.current_pose.pose.position.y])
-            # if robot_to_goal_distance < 0.5:
-            #     rospy.loginfo ("close to duplo")
-            #     return "success" 
+            robot_to_goal_distance = np.linalg.norm([self.goal.pose.position.x - self.current_pose.pose.position.x,
+                                                     self.goal.pose.position.y - self.current_pose.pose.position.y])
+            rospy.loginfo("Distance to duplo: %f", robot_to_goal_distance)
+            if robot_to_goal_distance < 0.15:
+                rospy.loginfo ("close to duplo")
+                self.is_in_state = False
+                return "success" 
             
             if self.duplo_reached:
                 self.client.cancel_goal()
@@ -108,6 +126,10 @@ class GoToDuploState(smach.State):
                 self.client.cancel_goal()
                 self.is_in_state = False
                 return "low_time"
+            
+            if self.pause_robot:
+                self.is_in_state = False
+                return 'pause'
 
         #     rospy.sleep(0.1)  # Control the loop rate
         # self.client.wait_for_result()
@@ -118,7 +140,7 @@ class GoToDuploState(smach.State):
             goal_msg = MoveBaseGoal()
             goal_msg.target_pose.header.stamp = rospy.Time.now()
             goal_msg.target_pose.pose = goal_pose.pose
-            goal_msg.target_pose.header.frame_id = 'odom'
+            goal_msg.target_pose.header.frame_id = 'map'
 
             # Publish the goal
             # self.goal_publisher.publish(goal_msg)
@@ -145,16 +167,24 @@ class GoToDuploState(smach.State):
     #         self.last_detection_time = rospy.Time.now()
     def closest_duplo_callback(self, msg):
         if self.is_in_state:
-            current_time = rospy.Time.now()
-            time_since_last_publish = current_time - self.last_publish_time
-            if time_since_last_publish >= rospy.Duration(0.5):  # Limit the frequency to 1 publish per second
-                self.goal = msg
-                self.publish_goal(self.goal)
+            if msg.pose.position.x >= 1.5 and msg.pose.position.y >= 2:
+                pass
+            else:
+                current_time = rospy.Time.now()
+                time_since_last_publish = current_time - self.last_publish_time
+                if time_since_last_publish >= rospy.Duration(0.5):  # Limit the frequency to 1 publish per second
+                    self.goal = msg
+                    self.publish_goal(self.goal)
 
-                self.last_detection_time = current_time
+                    self.last_detection_time = current_time
 
     def odom_callback(self, msg):
         # Update current_pose using odometry data
+        self.current_pose = PoseStamped()
+        self.current_pose.pose = msg.pose.pose
+
+    def amcl_callback(self, msg):
+     # Access the pose information from the amcl_pose message
         self.current_pose = PoseStamped()
         self.current_pose.pose = msg.pose.pose
 
