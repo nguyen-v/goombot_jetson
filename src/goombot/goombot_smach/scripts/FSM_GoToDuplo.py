@@ -3,7 +3,8 @@ import rospy
 import smach
 from geometry_msgs.msg import PoseStamped
 from actionlib_msgs.msg import GoalStatusArray
-from nav_msgs.msg import Odometry
+# from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import actionlib
@@ -26,6 +27,7 @@ class GoToDuploState(smach.State):
         self.current_pose = PoseStamped()
 
         self.duplo_reached = False
+        self.manual_control = False
 
         # Subscribe to the odometry topic
         # self.odom_sub = rospy.Subscriber("/odom", Odometry, self.odom_callback)
@@ -35,6 +37,7 @@ class GoToDuploState(smach.State):
         self.goal_pub = rospy.Publisher('/goombot/goal', PoseStamped, queue_size=1)
 
         self.republish_goal_pub = rospy.Publisher('/republish_goal', Bool, queue_size=1)
+        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
         self.closest_duplo_sub = rospy.Subscriber("/closest_duplo_goal_filtered", PoseStamped, self.closest_duplo_callback)
         self.status_sub = rospy.Subscriber('/move_base/status', GoalStatusArray, self.status_callback)
@@ -46,6 +49,11 @@ class GoToDuploState(smach.State):
 
         self.pause_robot = False
 
+    def publish_cmd_vel(self, lin_vel, ang_vel):
+            twist_cmd = Twist()
+            twist_cmd.linear.x = lin_vel
+            twist_cmd.angular.z = ang_vel
+            self.cmd_vel_pub.publish(twist_cmd)
 
     def pause_callback(self, msg):
         if self.is_in_state:
@@ -54,6 +62,8 @@ class GoToDuploState(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo("Executing GoToDuploState")
+
+        self.manual_control = False
 
         self.pause_robot = False
         self.is_in_state = True
@@ -91,10 +101,18 @@ class GoToDuploState(smach.State):
             robot_to_goal_distance = np.linalg.norm([self.goal.pose.position.x - self.current_pose.pose.position.x,
                                                      self.goal.pose.position.y - self.current_pose.pose.position.y])
             rospy.loginfo("Distance to duplo: %f", robot_to_goal_distance)
-            if robot_to_goal_distance < 0.15:
-                rospy.loginfo ("close to duplo")
-                self.is_in_state = False
-                return "success" 
+            # if robot_to_goal_distance < 0.15:
+            #     rospy.loginfo ("close to duplo")
+            #     self.is_in_state = False
+            #     return "success" 
+            if robot_to_goal_distance < 0.5:
+                rospy.loginfo ("transitioning to manual alignment")
+                self.manual_control = True
+                self.client.cancel_goal()
+
+            if self.manual_control:
+                self.publish_cmd_vel(0.1*robot_to_goal_distance)
+
             
             if self.duplo_reached:
                 self.client.cancel_goal()
@@ -172,11 +190,12 @@ class GoToDuploState(smach.State):
             else:
                 current_time = rospy.Time.now()
                 time_since_last_publish = current_time - self.last_publish_time
-                if time_since_last_publish >= rospy.Duration(0.5):  # Limit the frequency to 1 publish per second
-                    self.goal = msg
-                    self.publish_goal(self.goal)
+                if self.manual_control == False:
+                    if time_since_last_publish >= rospy.Duration(0.5):  # Limit the frequency to 1 publish per second
+                        self.goal = msg
+                        self.publish_goal(self.goal)
 
-                    self.last_detection_time = current_time
+                        self.last_detection_time = current_time
 
     def odom_callback(self, msg):
         # Update current_pose using odometry data

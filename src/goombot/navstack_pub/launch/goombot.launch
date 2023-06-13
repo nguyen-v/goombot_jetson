@@ -78,7 +78,7 @@
 
 
   <!-- Map -->
-  <arg name="map_file" default="$(find navstack_pub)/maps/arena.yaml"/>
+  <arg name="map_file" default="$(find navstack_pub)/maps/arena_final.yaml"/>
 	
   <!-- Map server -->
   <!-- Publishes: /map, /map_metadata -->
@@ -107,6 +107,7 @@
   <!-- Publishes: /cmd_vel -->
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="log">
     <param name="base_global_planner" value="navfn/NavfnROS"/>
+    <!-- <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/> -->
     <rosparam file="$(find navstack_pub)/param/costmap_common_params.yaml" command="load" ns="global_costmap" />
     <rosparam file="$(find navstack_pub)/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
     <rosparam file="$(find navstack_pub)/param/local_costmap_params.yaml" command="load" ns="local_costmap" />

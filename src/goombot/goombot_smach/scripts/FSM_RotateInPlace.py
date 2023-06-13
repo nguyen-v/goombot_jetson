@@ -15,7 +15,7 @@ class RotateInPlaceState(smach.State):
         smach.State.__init__(self, outcomes=['no_duplo', 'duplo_detected', 'low_time', 'pause'], input_keys=['init_time', 'explore_state'])
 
         self.initial_yaw = None
-        self.angular_speed = 0.8  # Adjust the angular speed as per your requirements
+        self.angular_speed = 0.3  # Adjust the angular speed as per your requirements
         self.goal_reached = False
         self.duplo_detected = False
         self.out_of_time = False
@@ -113,6 +113,8 @@ class RotateInPlaceState(smach.State):
 
         # Rotate until a full 360-degree rotation is completed or duplo is detected
         self.timer = rospy.Timer(rospy.Duration(2*math.pi/self.angular_speed), self.timer_callback)
+
+        self.goal_reached = False
         
         while not rospy.is_shutdown() and not self.goal_reached and not self.duplo_detected and not self.out_of_time:
             if explore_state == "GO_TO_BUTTON":

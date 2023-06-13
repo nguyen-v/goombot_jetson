@@ -14,14 +14,16 @@ import numpy as np
 
 class ExploreMapState(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['duplo_detected','success','low_time', 'failure', 'pause'], input_keys=['init_time', 'explore_state_in'], output_keys=['explore_state_out'])
+        smach.State.__init__(self, outcomes=['duplo_detected','success','low_time', 'failure', 'pause', 'actuate_button'], input_keys=['init_time', 'explore_state_in'], output_keys=['explore_state_out'])
         #self.points_list = [(1.0, 0.5, 0, 0), (0, 1.5, 0, math.pi/2), (-2, 1, 0, math.pi), (-1, -1, 0, -math.pi/2)]
-        self.points_list = [(0, 0, 0, 0),(2, 0, 0, math.pi/4), (0, 2.5, 0, math.pi/2), (1, 1.5, 0, 0), (-1.5, 0, 0, math.pi),(-2.5, 1, 0, math.pi),(-3.5, 1.5, 0, 3*math.pi/2),(-3.5, 0, 0, math.pi/4),(-4, 3, 0, math.pi/4),(-3, 3, 0, 2*math.pi/3),(-1, -2, 0, math.pi),(-1.5, -3, 0, 0),(4, -3, 0, 0),(2.5, -1, 0, math.pi)]
-        self.button_location = [(-0.704604974204, -3.46959064946, 0, math.pi/2)]
+        self.zone_3_points = [(2.2, -2.86, 0, math.pi/4),(2.46, -3.46, 0, 3/4*math.pi), (-0.5, -3, 0, math.pi)]
+        self.points_list = [(0, 0, 0, 0),(2, 0, 0, -math.pi/4), (1.68, 1.23, 0, 3*math.pi/4), (-0.86, 2.6, 0, math.pi), (-2.7, 0.46, 0,-3/4*math.pi), (-3.5, 0.9, 0, math.pi/2), (-3.35, 2.5, 0, 3/4*math.pi), (-0.3, 2.73, 0, 0) ]
+        self.button_location = [(-0.704604974204, -3.50959064946, 0, -math.pi/2)]
         self.goal_reached = False
         self.duplo_detected = False
         self.goal_not_reached = False
         self.point = None
+
 
         self.loop_rate = rospy.Rate(1)
 
@@ -153,12 +155,18 @@ class ExploreMapState(smach.State):
         # Get a random point from the list
         # point = self.get_random_point()
         
-
-        if self.point_index >= len(self.points_list):
+        length = 0
+        if userdata.explore_state_in == "EXPLORE_ZONE_3":
+            length = len(self.zone_3_points)
+        elif userdata.explore_state_in == "EXPLORE_MAP":
+            length = len(self.points_list)
+        if self.point_index >= length:
             self.point_index = 0
 
         if userdata.explore_state_in == "GO_TO_BUTTON":
             self.point = self.get_point(self.button_location, 0)
+        elif userdata.explore_state_in == "EXPLORE_ZONE_3":
+            self.point = self.get_point(self.zone_3_points, self.point_index)
         else:
             self.point = self.get_point(self.points_list, self.point_index)
         
@@ -170,9 +178,10 @@ class ExploreMapState(smach.State):
 
             robot_to_goal_distance = np.linalg.norm([self.point.pose.position.x - self.current_pose.pose.position.x,
                                                      self.point.pose.position.y - self.current_pose.pose.position.y])
-            if robot_to_goal_distance < 0.30 and userdata.explore_state_in == "EXPLORE_MAP":
+            if robot_to_goal_distance < 0.30 and userdata.explore_state_in != "GO_TO_BUTTON":
                 rospy.loginfo ("close to explore goal")
                 self.is_in_state = False
+                self.point_index += 1
                 return "success" 
             
             if self.pause_robot:
@@ -180,20 +189,23 @@ class ExploreMapState(smach.State):
             
             elif self.goal_reached:
                 self.is_in_state=False
-                if self.point_index < len(self.points_list):
+                if self.point_index < length:
                     self.point_index += 1
                 else:
+                    rospy.loginfo("Reached last index")
+                    if userdata.explore_state_in == "EXPLORE_ZONE_3":
+                        userdata.explore_state_out == "EXPLORE_MAP"
                     self.point_index = 0
                 self.client.cancel_all_goals()
                 if userdata.explore_state_in == "GO_TO_BUTTON":
-                    userdata.explore_state_out = "EXPLORE_MAP"
+                    userdata.explore_state_out = "EXPLORE_ZONE_3"
                     rospy.loginfo("Arrived to button")
-                return 'success'
+                return 'actuate_button'
             
             elif self.goal_not_reached:
                 self.is_in_state=False
                 # self.points_list.pop(self.point_index)
-                if self.point_index < len(self.points_list):
+                if self.point_index < length:
                     self.point_index += 1
                 else:
                     self.point_index = 0
@@ -206,21 +218,21 @@ class ExploreMapState(smach.State):
                 self.client.cancel_all_goals()
                 return 'duplo_detected'
             
-            # Check if task initialization time exceeds 15 seconds
-            elif rospy.Time.now() - self.init_task_time > rospy.Duration(30):
+            elif rospy.Time.now() - self.init_task_time > rospy.Duration(15) and userdata.explore_state_in != "GO_TO_BUTTON":
                 rospy.loginfo("Go to map waypoint took too long.")
-                if self.point_index < len(self.points_list):
+                if self.point_index < length:
                     self.point_index += 1
                 else:
                     self.point_index = 0
                 self.client.cancel_all_goals()
                 self.client.cancel_all_goals()
                 self.is_in_state = False
+                userdata.explore_state_out = "EXPLORE_MAP"
                 return "failure"
             
             elif rospy.Time.now()-init_time>rospy.Duration.from_sec(9*60):
                 rospy.loginfo("Low on time. Returning to drop zone.")
-                if self.point_index < len(self.points_list):
+                if self.point_index < length:
                     self.point_index += 1
                 else:
                     self.point_index = 0

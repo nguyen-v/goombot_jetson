@@ -11,6 +11,7 @@ from FSM_RotateInPlace import RotateInPlaceState
 from FSM_ExploreMap import ExploreMapState
 from FSM_GoDropZone import GoDropZoneState
 from FSM_PauseRobot import PauseRobotState
+from FSM_ActuateButton import ActuateButtonState
 
 from std_msgs.msg import Int16
 
@@ -19,23 +20,25 @@ def main():
     rospy.init_node('state_machine_node')
 
     left_ticks = rospy.wait_for_message('/left_ticks', Int16)
+    rospy.sleep(5)
 
     # Create a publisher for the /reset_controller topic
     reset_controller_pub = rospy.Publisher('/reset_controller', String, queue_size=10)
 
     # Create and publish the message with "speed" as data
-    reset_msg = String()
-    reset_msg.data = "speed"
-    reset_controller_pub.publish(reset_msg)
+    # for i in range(5):
+    #     reset_msg = String()
+    #     reset_msg.data = "speed"
+    #     reset_controller_pub.publish(reset_msg)
+    #     rospy.sleep(1)
 
     # Set the initial pose
     initial_pose_publisher = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=1)
     set_dynamixel_pos_pub = rospy.Publisher('/servo_command', String, queue_size=10)
-    left_ticks_sub = rospy.Subscriber()
     initial_pose_msg = PoseWithCovarianceStamped()
     initial_pose_msg.header.frame_id = 'map'
-    initial_pose_msg.pose.pose.position.x = 2.15
-    initial_pose_msg.pose.pose.position.y = 2.40
+    initial_pose_msg.pose.pose.position.x = 2.35
+    initial_pose_msg.pose.pose.position.y = 2.45
     initial_pose_msg.pose.pose.position.z = 0.0
     initial_pose_msg.pose.pose.orientation.x = 0.0
     initial_pose_msg.pose.pose.orientation.y = 0.0
@@ -72,10 +75,15 @@ def main():
                                             'low_time': 'GO_TO_DROP_ZONE',
                                             'success' : 'ROTATE_IN_PLACE',
                                             'failure' : 'EXPLORE_MAP',
-                                            'pause'   : 'PAUSE_ROBOT'},
+                                            'pause'   : 'PAUSE_ROBOT',
+                                            'actuate_button' : 'ACTUATE_BUTTON'},
                                remapping={'init_time': 'init_time',
                                           'explore_state_in' : 'explore_state',
                                           'explore_state_out' : 'explore_state'})
+        
+        smach.StateMachine.add('ACTUATE_BUTTON', ActuateButtonState(),
+                                transitions = {'success': 'EXPLORE_MAP'})
+        
         
         smach.StateMachine.add('GO_TO_DUPLO', GoToDuploState(),
                                transitions={'success': 'GRASP_DUPLO',

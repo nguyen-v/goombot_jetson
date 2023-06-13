@@ -21,7 +21,7 @@ class GraspDuploState(smach.State):
 
         self.set_dynamixel_pos_pub = rospy.Publisher('/servo_command', String, queue_size=1)
         self.republish_goal_pub = rospy.Publisher('/republish_goal', Bool, queue_size=1)
-        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.robot_state_pub = rospy.Publisher('/robot_state_command', String, queue_size=1)
         
         self.pause_subscriber = rospy.Subscriber('pause_robot', Empty, self.pause_callback)
@@ -61,6 +61,7 @@ class GraspDuploState(smach.State):
         self.robot_state_pub.publish(stop_command)
         for i in range(5):
             self.publish_cmd_vel(0.0)
+            rospy.sleep(0.2)
 
 
         rospy.loginfo("Robot stopped")
