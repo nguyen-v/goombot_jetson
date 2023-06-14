@@ -41,10 +41,10 @@ class GoDropZoneState(smach.State):
         goal_msg.pose.position.y = 3.0 
         goal_msg.pose.position.z = 0.0 
 
-        goal_msg.pose.orientation.w = 0.383
+        goal_msg.pose.orientation.w = 0.924
         goal_msg.pose.orientation.x = 0.0
         goal_msg.pose.orientation.y = 0.0
-        goal_msg.pose.orientation.z = -0.924
+        goal_msg.pose.orientation.z = 0.383
 
         self.publish_goal(goal_msg)
         # Wait for the navigation stack to reach the drop zone

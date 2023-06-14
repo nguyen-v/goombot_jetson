@@ -26,11 +26,11 @@ def main():
     reset_controller_pub = rospy.Publisher('/reset_controller', String, queue_size=10)
 
     # Create and publish the message with "speed" as data
-    # for i in range(5):
-    #     reset_msg = String()
-    #     reset_msg.data = "speed"
-    #     reset_controller_pub.publish(reset_msg)
-    #     rospy.sleep(1)
+    for i in range(5):
+        reset_msg = String()
+        reset_msg.data = "speed"
+        reset_controller_pub.publish(reset_msg)
+        rospy.sleep(1)
 
     # Set the initial pose
     initial_pose_publisher = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=1)
@@ -61,6 +61,7 @@ def main():
 
     rospy.sleep(3)
     # Publish the initial pose
+    rospy.loginfo("Publishing initial pose")
     initial_pose_publisher.publish(initial_pose_msg)
 
     rospy.sleep(5)
@@ -107,7 +108,8 @@ def main():
 
         smach.StateMachine.add('DROP_DUPLO', DropDuploState(),
                                transitions={'success': 'EXPLORE_MAP',
-                                            'pause'   : 'PAUSE_ROBOT'})
+                                            'pause'   : 'PAUSE_ROBOT'},
+                                remapping = {'init_time' : 'init_time'})
 
         smach.StateMachine.add('ROTATE_IN_PLACE', RotateInPlaceState(),
                                transitions={'low_time': 'GO_TO_DROP_ZONE',

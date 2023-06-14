@@ -4,8 +4,7 @@ import rospy
 import tf2_ros
 import math
 import tf
-from geometry_msgs.msg import PoseArray
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseArray, PoseStamped
 from tf2_geometry_msgs import do_transform_pose
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
@@ -19,6 +18,7 @@ class DuploPoseRepublisher:
         self.pose_sub = rospy.Subscriber('/oakd/yolo/rel_duplo_pose', PoseArray, self.pose_callback)
         self.pose_pub = rospy.Publisher('/duplo_poses', PoseArray, queue_size=10)
         self.pose_goal_pub = rospy.Publisher('/closest_duplo_goal', PoseStamped, queue_size=10)
+        self.closest_duplo_pub = rospy.Publisher('/closest_duplo_camera', PoseStamped, queue_size=10)
 
         self.distance_goal_to_duplo = rospy.get_param('~distance_goal_to_duplo', 0.35)  # Default: 0.35 meter
         
@@ -35,9 +35,7 @@ class DuploPoseRepublisher:
                 dz = pose.position.z
                 yaw = math.atan2(dy, dx)
                 quat = tf.transformations.quaternion_from_euler(0, 0, yaw)
-                # qx, qy, qz, qw = tf2_ros.quaternion_from_euler(0, 0, yaw)  # Calculate the orientation based on yaw angle
                 
-
                 # Create a PoseStamped with the calculated orientation and the original position
                 pose_stamped = PoseStamped()
                 pose_stamped.pose.orientation.x = quat[0]
@@ -64,20 +62,9 @@ class DuploPoseRepublisher:
                     closest_pose.pose.position.y -= math.copysign(self.distance_goal_to_duplo * math.sqrt(closest_pose.pose.position.y**2/(closest_pose.pose.position.y**2+closest_pose.pose.position.x**2)), closest_pose.pose.position.y)
                 closest_pose.pose.position.x -= self.distance_goal_to_duplo * math.sqrt(closest_pose.pose.position.x**2/(closest_pose.pose.position.y**2+closest_pose.pose.position.x**2))
                 transformed_goal = do_transform_pose(closest_pose, transform)
-                # _, _, yaw = euler_from_quaternion([
-                #     transformed_goal.pose.orientation.x,
-                #     transformed_goal.pose.orientation.y,
-                #     transformed_goal.pose.orientation.z,
-                #     transformed_goal.pose.orientation.w
-                # ])
-                # orientation = quaternion_from_euler(0, 0, yaw)
-                # transformed_goal.pose.orientation.x = orientation[0]
-                # transformed_goal.pose.orientation.y = orientation[1]
-                # transformed_goal.pose.orientation.z = orientation[2]
-                # transformed_goal.pose.orientation.w = orientation[3]
 
-                # if closest_pose.pose.position.x > 0.25:
                 self.pose_goal_pub.publish(transformed_goal)
+                self.closest_duplo_pub.publish(closest_pose)
 
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             rospy.logwarn("Transform lookup failed: %s", str(e))

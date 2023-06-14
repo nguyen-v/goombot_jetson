@@ -67,8 +67,9 @@ class ActuateButtonState(smach.State):
 
             elif self.returned == True and self.button_pressed is not True:
                 rospy.loginfo("Pressing button")
+                rospy.sleep(1)
                 self.publish_vel(-0.2, 0)
-                rospy.sleep(0.8)
+                rospy.sleep(1)
                 self.publish_vel(-0, 0)
                 rospy.sleep(1)
                 self.publish_vel(0.1, 0)

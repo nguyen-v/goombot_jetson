@@ -118,6 +118,9 @@
 
 <node pkg="goombot_smach" type="fsm_goombot.py" name="fsm_goombot" output="screen">
 </node> 
+<!-- 
+<node pkg="goombot_reconfigure" type="local_planner_reconfigure.py" name="local_planner_reconfigure" output="screen">
+</node> -->
 
 <include file="$(find dynamixel_control)/launch/goombot_dynamixel.launch"/>
 <!-- 

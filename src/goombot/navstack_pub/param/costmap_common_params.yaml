@@ -8,6 +8,7 @@ robot_base_frame: base_footprint
 update_frequency: 20
 publish_frequency: 20
 rolling_window: false
+transform_tolerance: 2.0
 
 plugins:
   - {name: static_layer, type: "costmap_2d::StaticLayer"}
