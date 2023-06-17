@@ -17,7 +17,7 @@ class ExploreMapState(smach.State):
         smach.State.__init__(self, outcomes=['duplo_detected','success','low_time', 'failure', 'pause', 'actuate_button'], input_keys=['init_time', 'explore_state_in'], output_keys=['explore_state_out'])
         #self.points_list = [(1.0, 0.5, 0, 0), (0, 1.5, 0, math.pi/2), (-2, 1, 0, math.pi), (-1, -1, 0, -math.pi/2)]
         self.zone_3_points = [(2.2, -2.86, 0, math.pi/4),(2.46, -3.46, 0, 3/4*math.pi), (-0.5, -3, 0, math.pi)]
-        self.points_list = [(0, 0, 0, 0),(2, 0, 0, -math.pi/4), (1.68, 1.23, 0, 3*math.pi/4), (-0.86, 2.6, 0, math.pi), (-2.7, 0.46, 0,-3/4*math.pi), (-3.5, 0.9, 0, math.pi/2), (-3.35, 2.5, 0, 3/4*math.pi), (-0.3, 2.73, 0, 0) ]
+        self.points_list = [(0, 0, 0, 0),(2, 0, 0, -math.pi/4), (1.68, 1.23, 0, 3*math.pi/4), (-0.86, 2.6, 0, math.pi), (-2.7, 0.46, 0,-3/4*math.pi), (-3.5, 0.9, 0, math.pi/2), (-0.3, 2.73, 0, 0) ]
         self.button_location = [(-0.704604974204, -3.50959064946, 0, -math.pi/2)]
         self.goal_reached = False
         self.duplo_detected = False
@@ -75,6 +75,8 @@ class ExploreMapState(smach.State):
         # if self.is_in_state:
         if data is not None:
             if data.pose.position.x >= 1.5 and data.pose.position.y >= 2:
+                pass
+            elif data.pose.position.x <= -1.5 and data.pose.position.y >= 2:
                 pass
             else:
                 self.duplo_detected = True

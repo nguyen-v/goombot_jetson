@@ -64,6 +64,8 @@ class RotateInPlaceState(smach.State):
             if msg is not None:
                 if msg.pose.position.x >= 1.5 and msg.pose.position.y >= 2:
                     pass
+                elif msg.pose.position.x <= -1.5 and msg.pose.position.y >= 2:
+                    pass
                 else:
                     self.duplo_detected = True
 

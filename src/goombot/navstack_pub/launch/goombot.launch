@@ -7,11 +7,10 @@
   <node pkg="tf" type="static_transform_publisher" name="base_footprint_to_base_link" args="0 0 0.06 0 0 0 base_footprint base_link 30" />
   <!-- robot_pose_ekf: odom to base_footprint -->
   <!-- amcl: map to odom -->
-  <!-- <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map odom 30" /> -->
 
   <!-- Setup rosserial connection to arduino -->
-  <!-- Subscribes: /cmd_vel /reset_controller -->
-  <!-- Publishes: /left_wheel_vel /right_wheel_vel /left_ticks /right_ticks -->
+  <!-- Subscribes: /cmd_vel /reset_controller /servo_command /robot_state_command -->
+  <!-- Publishes: /left_wheel_vel /right_wheel_vel /left_ticks /right_ticks /robot_state -->
   <node pkg="rosserial_python" type="serial_node.py" name="serial_node">
     <param name="port" value="/dev/ttyACM0"/>
     <param name="baud" value="921600"/>
@@ -28,7 +27,7 @@
   <!-- RPLIDAR A1 publisher -->
   <!-- Publishes: /scan -->
   <node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
-    <param name="serial_port"         type="string" value="/dev/ttyUSB0"/>
+    <param name="serial_port"         type="string" value="/dev/ttyUSB1"/>
     <param name="serial_baudrate"     type="int"    value="115200"/>
     <param name="frame_id"            type="string" value="laser"/>
     <param name="inverted"            type="bool"   value="false"/>
@@ -90,10 +89,11 @@
   <!-- AMCL -->
   <!-- Subscribes: /scan, /tf, /initialpose, /map -->
   <!-- Publish: /amcl_pose, /particlecloud, /tf -->
-  <!-- <include file="$(find navstack_pub)/launch/amcl_diff_lidar.launch"/> -->
+  <include file="$(find navstack_pub)/launch/amcl_diff_lidar.launch"/>
+  <!-- <include file="$(find amcl)/examples/amcl_diff.launch"/> -->
 
-  <include file="$(find amcl)/examples/amcl_diff.launch"/>
-<!-- 
+  <!-- Alternative to AMCL: ALS ROS. Not working very well -->
+  <!-- 
   <include file = "$(find als_ros)/launch/mcl.launch">
     <arg name="scan_name" value="/scan_filtered" />
     <arg name="use_gl_pose_sampler" value="true" /> -->
@@ -115,31 +115,35 @@
     <rosparam file="$(find navstack_pub)/param/base_local_planner_params.yaml" command="load" />
   </node>
 
-
-<node pkg="goombot_smach" type="fsm_goombot.py" name="fsm_goombot" output="screen">
-</node> 
-
+<!-- Dynamixel node -->
+<!-- Subscribes: /servo_command -->
 <include file="$(find dynamixel_control)/launch/goombot_dynamixel.launch"/>
-<!-- 
-<node pkg="smach_viewer" type="smach_viewer.py" name="smach_viewer" output="screen">
-</node> -->
 
 <!-- OAK-D Lite -->
 <!-- Publishes: /oakd/yolo/rel_duplo_pose -->
 <include file="$(find oakd_ros)/launch/main.launch"/>
 
+<!-- Duplo pose transform to map frame -->
+<!-- Subscribes: /oakd/yolo/rel_duplo_pose -->
+<!-- Publishes: /duplo_poses, /closest_duplo_goal, /closest_duplo_camera -->
 <node pkg="duplo_pose_pub" type="duplo_pose_republisher.py" name="duplo_pose_republisher" output="screen">
   <param name="distance_goal_to_duplo" value="0.25" />
 </node> 
 
+<!-- Duplo pose preprocessing and filtering -->
+<!-- Subscribes: /closest_duplo_goal, /move_base/global_costmap/costmap -->
+<!-- Publishes: /closest_duplo_goal_filtered -->
 <node pkg="duplo_pose_pub" type="duplo_pose_filter_pub.py" name="duplo_pose_filter_pub" output="screen">
   <param name="filter_alpha" value="0.5" />
   <param name="distance_threshold" value = "0.7" />
 </node> 
 
+<!-- FSM using SMACH -->
+<node pkg="goombot_smach" type="fsm_goombot.py" name="fsm_goombot" output="screen">
+</node> 
 
-<!-- <node pkg="navstack_pub" type="goal_republisher.py" name="goal_republisher">
-  <param name="publish_frequency" value="0.5" />
-</node> -->
+<!-- SMACH viewer (not working 100% of the time) -->
+<node pkg="smach_viewer" type="smach_viewer.py" name="smach_viewer" output="screen">
+</node>
 
 </launch>

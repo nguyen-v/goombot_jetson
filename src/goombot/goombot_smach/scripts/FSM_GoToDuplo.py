@@ -29,6 +29,8 @@ class GoToDuploState(smach.State):
         self.duplo_reached = False
         self.manual_control = False
 
+        self.duplo_pose_rel = None
+
         # Subscribe to the odometry topic
         # self.odom_sub = rospy.Subscriber("/odom", Odometry, self.odom_callback)
         rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, self.amcl_callback)
@@ -40,6 +42,7 @@ class GoToDuploState(smach.State):
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
         self.closest_duplo_sub = rospy.Subscriber("/closest_duplo_goal_filtered", PoseStamped, self.closest_duplo_callback)
+        self.closest_duplo_camera_sub = rospy.Subscriber("/closest_duplo_camera", PoseStamped, self.closest_duplo_camera_callback)
         self.status_sub = rospy.Subscriber('/move_base/status', GoalStatusArray, self.status_callback)
         self.pause_subscriber = rospy.Subscriber('pause_robot', Empty, self.pause_callback)
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
@@ -70,6 +73,7 @@ class GoToDuploState(smach.State):
         self.duplo_reached = False
 
         self.closest_duplo_sub = rospy.Subscriber("/closest_duplo_goal_filtered", PoseStamped, self.closest_duplo_callback)
+        self.closest_duplo_camera_sub = rospy.Subscriber("/closest_duplo_camera", PoseStamped, self.closest_duplo_camera_callback)
 
         self.goal = None
 
@@ -111,12 +115,17 @@ class GoToDuploState(smach.State):
                 self.client.cancel_goal()
 
             if self.manual_control:
-                self.publish_cmd_vel(0.1*robot_to_goal_distance)
+                if self.duplo_pose_rel is not None:
+                    self.publish_cmd_vel(0.5*self.duplo_pose_rel.pose.position.x, 0.5*self.duplo_pose_rel.pose.position.y)
+                    rospy.loginfo("Manual control: x = %f, y = %f", self.duplo_pose_rel.pose.position.x, self.duplo_pose_rel.pose.position.y)
+                    if self.duplo_pose_rel.pose.position.x < 0.1:
+                        self.duplo_reached = True
 
             
             if self.duplo_reached:
                 self.client.cancel_goal()
                 self.closest_duplo_sub.unregister()
+                self.closest_duplo_camera_sub.unregister()
                 self.duplo_reached = False
                 self.is_in_state = False
                 return "success"
@@ -125,6 +134,7 @@ class GoToDuploState(smach.State):
             if rospy.Time.now() - self.last_detection_time > rospy.Duration(5):
                 rospy.loginfo("Go to duplo hasn't seen a duplo in 5s.")
                 self.closest_duplo_sub.unregister()
+                self.closest_duplo_camera_sub.unregister()
                 self.client.cancel_goal()
                 self.is_in_state = False
                 return "failure"
@@ -133,6 +143,7 @@ class GoToDuploState(smach.State):
             if rospy.Time.now() - self.init_task_time > rospy.Duration(30):
                 rospy.loginfo("Go to duplo took too long.")
                 self.closest_duplo_sub.unregister()
+                self.closest_duplo_camera_sub.unregister()
                 self.client.cancel_goal()
                 self.is_in_state = False
                 return "failure"
@@ -141,6 +152,7 @@ class GoToDuploState(smach.State):
             if rospy.Time.now() - init_time > rospy.Duration(540):
                 rospy.loginfo("Low on time.")
                 self.closest_duplo_sub.unregister()
+                self.closest_duplo_camera_sub.unregister()
                 self.client.cancel_goal()
                 self.is_in_state = False
                 return "low_time"
@@ -196,6 +208,9 @@ class GoToDuploState(smach.State):
                         self.publish_goal(self.goal)
 
                         self.last_detection_time = current_time
+    def closest_duplo_camera_callback(self, msg):
+        if self.is_in_state:
+            self.duplo_pose_rel = msg
 
     def odom_callback(self, msg):
         # Update current_pose using odometry data
@@ -214,4 +229,3 @@ class GoToDuploState(smach.State):
                     # rospy.loginfo("Goal reached in GoToDuplo")
                     pass
                     # self.duplo_reached = True
-

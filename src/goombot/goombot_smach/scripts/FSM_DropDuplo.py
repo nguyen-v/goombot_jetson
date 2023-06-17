@@ -29,6 +29,11 @@ class DropDuploState(smach.State):
         self.is_in_state = True
         
         rospy.loginfo("Executing DropDuplo State.")
+        # Go back a bit
+        self.publish_cmd_vel(-0.1)
+        rospy.sleep(2)
+        self.publish_cmd_vel(0.0)
+        rospy.sleep(1)
         # Open the container
         rospy.loginfo("Opening container")
         self.container_pub.publish('CONTAINER_OPEN')
@@ -37,7 +42,7 @@ class DropDuploState(smach.State):
         rospy.sleep(5.0)
 
         self.publish_cmd_vel(0.1)
-        rospy.sleep(3)
+        rospy.sleep(5)
         self.publish_cmd_vel(0.0)
 
         rospy.sleep(2)
@@ -47,9 +52,9 @@ class DropDuploState(smach.State):
         rospy.loginfo("Closing container")
         self.container_pub.publish('CONTAINER_CLOSE')
         self.is_in_state = False
-        if self.pause_robot:
-                return 'pause'
-        return 'success'
+        # if self.pause_robot:
+        return 'pause'
+        # return 'success'
     
     def publish_cmd_vel(self, linear_x):
         twist_cmd = Twist()
